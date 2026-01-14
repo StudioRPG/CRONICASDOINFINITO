@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crônicas de Aetheria - Manual do Aventureiro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @media print {
+            .no-print {
+                display: none;
+            }
+
+            body {
+                background: white;
+                color: black;
+            }
+
+            .page-break {
+                page-break-before: always;
+            }
+        }
+
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@400;600&display=swap');
+    </style>
+</head>
+
+<body class="bg-slate-900 text-zinc-100 font-sans p-8 print:p-0 print:bg-white print:text-black">
+
+    <div
+        class="max-w-4xl mx-auto bg-zinc-900 p-8 rounded-xl shadow-2xl border border-amber-600/30 print:shadow-none print:border-none print:bg-white print:p-0">
+
+        <div class="text-center mb-12 border-b border-amber-500/30 pb-8 print:border-black">
+            <h1 class="text-5xl font-['Cinzel'] text-amber-500 mb-4 print:text-black">Crônicas de Aetheria</h1>
+            <h2 class="text-2xl text-zinc-400 print:text-gray-600 uppercase tracking-widest">Manual do Aventureiro</h2>
+
+            <button onclick="window.print()"
+                class="no-print mt-8 bg-amber-600 hover:bg-amber-500 text-black font-bold py-2 px-6 rounded-lg transition-all shadow-lg hover:shadow-amber-500/20 flex items-center gap-2 mx-auto">
+                <span>🖨️</span> Salvar como PDF / Imprimir
+            </button>
+        </div>
+
+        <!-- CLASSES -->
+        <section class="mb-12">
+            <h3 class="text-3xl font-['Cinzel'] text-amber-400 mb-6 flex items-center gap-3 print:text-black">
+                <span>🛡️</span> Classes e Evoluções
+            </h3>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr
+                            class="bg-black/20 text-amber-500 border-b border-zinc-700 print:text-black print:border-black">
+                            <th class="p-3">Classe Básica</th>
+                            <th class="p-3">Descrição</th>
+                            <th class="p-3">Evolução (Nvl 20)</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-zinc-800 print:divide-gray-300">
+                        <tr>
+                            <td class="p-3 font-bold">⚔️ Guerreiro</td>
+                            <td class="p-3 text-zinc-400 print:text-black">Combate corpo a corpo.</td>
+                            <td class="p-3 font-bold text-amber-200 print:text-black">🏇 Cavaleiro</td>
+                        </tr>
+                        <tr>
+                            <td class="p-3 font-bold">🪄 Mago</td>
+                            <td class="p-3 text-zinc-400 print:text-black">Artes arcanas.</td>
+                            <td class="p-3 font-bold text-amber-200 print:text-black">🔮 Arquimago</td>
+                        </tr>
+                        <tr>
+                            <td class="p-3 font-bold">🗡️ Ladino</td>
+                            <td class="p-3 text-zinc-400 print:text-black">Furtividade e precisão.</td>
+                            <td class="p-3 font-bold text-amber-200 print:text-black">🌑 Assassino</td>
+                        </tr>
+                        <tr>
+                            <td class="p-3 font-bold">🛡️ Paladino</td>
+                            <td class="p-3 text-zinc-400 print:text-black">Guerreiros santos.</td>
+                            <td class="p-3 font-bold text-amber-200 print:text-black">✝️ Cruzado</td>
+                        </tr>
+                        <tr>
+                            <td class="p-3 font-bold">💀 Necromante</td>
+                            <td class="p-3 text-zinc-400 print:text-black">Magia da morte.</td>
+                            <td class="p-3 font-bold text-amber-200 print:text-black">☠️ Lich</td>
+                        </tr>
+                        <tr>
+                            <td class="p-3 font-bold">🎵 Bardo</td>
+                            <td class="p-3 text-zinc-400 print:text-black">Música e magia.</td>
+                            <td class="p-3 font-bold text-amber-200 print:text-black">🎶 Trovador</td>
+                        </tr>
+                        <tr>
+                            <td class="p-3 font-bold">✨ Clérigo</td>
+                            <td class="p-3 text-zinc-400 print:text-black">Cura divina.</td>
+                            <td class="p-3 font-bold text-amber-200 print:text-black">🌟 Sumo-Sacerdote</td>
+                        </tr>
+                        <tr>
+                            <td class="p-3 font-bold">🌿 Druida</td>
+                            <td class="p-3 text-zinc-400 print:text-black">Força da natureza.</td>
+                            <td class="p-3 font-bold text-amber-200 print:text-black">🌲 Guardião</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- MAGIAS -->
+        <section class="mb-12 page-break">
+            <h3 class="text-3xl font-['Cinzel'] text-amber-400 mb-6 flex items-center gap-3 print:text-black">
+                <span>✨</span> Magias (Academia Arcana)
+            </h3>
+            <div class="grid gap-4 md:grid-cols-2">
+                <div class="bg-black/20 p-4 rounded border border-zinc-700 print:border-gray-300">
+                    <div class="font-bold text-blue-300 print:text-black">Cura Rápida</div>
+                    <div class="text-sm text-zinc-400 print:text-black">Custo: 3 PM | 100💰</div>
+                    <div class="mt-1">Recupera PV baseada na Habilidade.</div>
+                </div>
+                <div class="bg-black/20 p-4 rounded border border-zinc-700 print:border-gray-300">
+                    <div class="font-bold text-red-300 print:text-black">Bola de Fogo</div>
+                    <div class="text-sm text-zinc-400 print:text-black">Custo: 5 PM | 200💰</div>
+                    <div class="mt-1">Dano de Fogo alto.</div>
+                </div>
+                <div class="bg-black/20 p-4 rounded border border-zinc-700 print:border-gray-300">
+                    <div class="font-bold text-yellow-300 print:text-black">Relâmpago</div>
+                    <div class="text-sm text-zinc-400 print:text-black">Custo: 6 PM | 250💰</div>
+                    <div class="mt-1">Dano Elétrico Massivo.</div>
+                </div>
+                <div class="bg-black/20 p-4 rounded border border-zinc-700 print:border-gray-300">
+                    <div class="font-bold text-yellow-100 print:text-black">Luz Divina</div>
+                    <div class="text-sm text-zinc-400 print:text-black">Custo: 4 PM | 120💰</div>
+                    <div class="mt-1">Dano Sagrado moderado.</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ITENS -->
+        <section class="mb-12">
+            <h3 class="text-3xl font-['Cinzel'] text-amber-400 mb-6 flex items-center gap-3 print:text-black">
+                <span>🎒</span> Equipamentos Populares
+            </h3>
+            <ul class="space-y-2 text-sm print:text-base">
+                <li><strong class="text-zinc-200 print:text-black">Espada Longa (600💰):</strong> +3 Força. Aço puro.
+                </li>
+                <li><strong class="text-zinc-200 print:text-black">Arco Élfico (500💰):</strong> +3 Habilidade. Precisão
+                    mortal.</li>
+                <li><strong class="text-zinc-200 print:text-black">Machadão Duplo (1200💰):</strong> +5 Força. Dano
+                    massivo.</li>
+                <li><strong class="text-zinc-200 print:text-black">Varinha de Cristal (2500💰):</strong> +4 Poder, +10
+                    PM. Essencial para magos.</li>
+                <li><strong class="text-zinc-200 print:text-black">Armadura de Placas (1800💰):</strong> +5 Defesa.
+                    Proteção máxima.</li>
+            </ul>
+        </section>
+
+        <!-- LOCAIS -->
+        <section class="page-break">
+            <h3 class="text-3xl font-['Cinzel'] text-amber-400 mb-6 flex items-center gap-3 print:text-black">
+                <span>🗺️</span> Guia de Regiões
+            </h3>
+
+            <div class="space-y-6">
+                <div>
+                    <h4 class="text-xl font-bold text-green-400 print:text-black">🏰 Vila Verdejante (Nvl 1-3)</h4>
+                    <p class="text-zinc-400 print:text-black">Zona inicial. Monstros fracos como Ratos e Slimes.</p>
+                </div>
+                <div>
+                    <h4 class="text-xl font-bold text-green-600 print:text-black">🌲 Bosque Ancestral (Nvl 3-5)</h4>
+                    <p class="text-zinc-400 print:text-black">Lar de Lobos e Ursos. Cuidado com o Javali Selvagem.</p>
+                </div>
+                <div>
+                    <h4 class="text-xl font-bold text-purple-400 print:text-black">☠️ Floresta Sombria (Nvl 5-8)</h4>
+                    <p class="text-zinc-400 print:text-black">Mortos-vivos e Aranhas. O <strong>Dragão Jovem</strong>
+                        habita aqui.</p>
+                </div>
+                <div>
+                    <h4 class="text-xl font-bold text-red-400 print:text-black">🏔️ Montanhas de Ferro (Nvl 8-12)</h4>
+                    <p class="text-zinc-400 print:text-black">Domínio dos Orcs e Trolls. O Golem de Pedra é um
+                        adversário formidável.</p>
+                </div>
+                <div>
+                    <h4 class="text-xl font-bold text-cyan-400 print:text-black">❄️ Montanhas de Gelo (Nvl 15-20)</h4>
+                    <p class="text-zinc-400 print:text-black">A zona mais perigosa. Yetis, Gigantes e o lendário <strong
+                            class="text-red-500 print:text-black">DRAGÃO BRANCO</strong>.</p>
+                </div>
+            </div>
+        </section>
+
+        <footer class="mt-12 text-center text-zinc-500 text-xs border-t border-zinc-800 pt-8 print:text-black">
+            <p>Crônicas de Aetheria - Documentação Oficial v1.0</p>
+            <p>Gerado automaticamente.</p>
+        </footer>
+
+    </div>
+
+</body>
+
+</html>

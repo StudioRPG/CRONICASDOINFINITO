@@ -1,0 +1,1945 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crônicas do Infinito - Edição Portátil</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=MedievalSharp&family=Inter:wght@300;400;600&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #050505;
+            color: #e4e4e7;
+            overflow: hidden;
+        }
+
+        .font-fantasy {
+            font-family: 'Cinzel', serif;
+        }
+
+        .font-medieval {
+            font-family: 'MedievalSharp', cursive;
+        }
+
+        .glass-card {
+            background: rgba(20, 20, 25, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        .ornate-border {
+            position: relative;
+        }
+
+        .ornate-border::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(245, 158, 11, 0.5), transparent);
+        }
+
+        .ornate-border::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(245, 158, 11, 0.5), transparent);
+        }
+
+        .scroll-hide::-webkit-scrollbar {
+            display: none;
+        }
+
+        .scroll-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-slide {
+            animation: slideIn 0.4s ease-out forwards;
+        }
+
+        .action-btn {
+            transition: all 0.2s;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .action-btn:active {
+            transform: translateY(0);
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        /* 
+           ================================================================
+           SEÇÃO 1: BANCO DE DADOS DO JOGO
+           Aqui você pode editar Raças, Classes, Magias, Itens e Locais.
+           ================================================================
+        */
+
+        // --- CONFIGURAÇÕES ---
+        const STORAGE_KEY_V2 = 'cronicas_saves_v2';
+
+        // --- RAÇAS ---
+        const RACAS = {
+            'Humano': { description: "Versáteis e ambiciosos.", bonus: { forca: 1, habilidade: 1, resistencia: 1, armadura: 1, poderDeFogo: 1 } },
+            'Elfo': { description: "Graciosos e mágicos.", bonus: { habilidade: 2, poderDeFogo: 2, resistencia: -1 } },
+            'Anão': { description: "Robustos mestres da forja.", bonus: { forca: 1, resistencia: 2, armadura: 1, habilidade: -1 } },
+            'Orc': { description: "Guerreiros brutais.", bonus: { forca: 3, resistencia: 1, habilidade: -1, poderDeFogo: -1 } },
+            'Celestial': { description: "Descendência divina.", bonus: { poderDeFogo: 2, habilidade: 1, resistencia: 1 } }
+        };
+
+        // --- CLASSES E EVOLUÇÕES ---
+        const CLASSES = {
+            'Guerreiro': { description: "Combate corpo a corpo.", icon: "⚔️" },
+            'Mago': { description: "Artes arcanas.", icon: "🪄" },
+            'Ladino': { description: "Furtividade e precisão.", icon: "🗡️" },
+            'Paladino': { description: "Guerreiros santos.", icon: "🛡️" },
+            'Necromante': { description: "Magia da morte.", icon: "💀" },
+            'Bardo': { description: "Música e magia.", icon: "🎵" },
+            'Clérigo': { description: "Cura divina.", icon: "✨" },
+            'Druida': { description: "Força da natureza.", icon: "🌿" },
+            'Arqueiro': { description: "Mestre do arco e flecha.", icon: "🏹" },
+            // Evoluções
+            'Cavaleiro': { description: "Mestre do combate.", icon: "🏇" },
+            'Arquimago': { description: "Mestre dos arcanos.", icon: "🔮" },
+            'Assassino': { description: "Mestre das sombras.", icon: "🌑" },
+            'Cruzado': { description: "Campeão divino.", icon: "✝️" },
+            'Lich': { description: "Senhor dos mortos.", icon: "☠️" },
+            'Trovador': { description: "Lenda musical.", icon: "🎶" },
+            'Sumo-Sacerdote': { description: "Voz dos deuses.", icon: "🌟" },
+            'Guardião': { description: "Protetor da floresta.", icon: "🌲" },
+            'Sentinela': { description: "Olhos de águia, mira perfeita.", icon: "🦅" }
+        };
+
+        const EVOLUCOES = {
+            'Guerreiro': 'Cavaleiro',
+            'Mago': 'Arquimago',
+            'Ladino': 'Assassino',
+            'Paladino': 'Cruzado',
+            'Necromante': 'Lich',
+            'Bardo': 'Trovador',
+            'Clérigo': 'Sumo-Sacerdote',
+            'Druida': 'Guardião',
+            'Arqueiro': 'Sentinela'
+        };
+
+        const NIVEL_MAX_CLASSE_BASICA = 20;
+
+        // --- MAGIAS DISPONÍVEIS NA ACADEMIA ---
+        const MAGIAS_DISPONIVEIS = [
+            { id: 'cura', nome: "Cura Rápida", custo: 100, mana: 3, tipo: 'Cura', poder: 5, desc: "Recupera PV." },
+            { id: 'fogo', nome: "Bola de Fogo", custo: 200, mana: 5, tipo: 'Ataque', poder: 8, desc: "Dano alto de fogo." },
+            { id: 'escudo', nome: "Pele de Pedra", custo: 150, mana: 4, tipo: 'Buff', poder: 0, desc: "+2 Armadura temp." },
+            { id: 'raio', nome: "Relâmpago", custo: 250, mana: 6, tipo: 'Ataque', poder: 10, desc: "Dano elétrico massivo." },
+            { id: 'luz', nome: "Luz Divina", custo: 120, mana: 4, tipo: 'Ataque', poder: 6, desc: "Dano sagrado." }
+        ];
+
+        // --- ITENS À VENDA NAS LOJAS ---
+        // --- ITENS À VENDA NAS LOJAS ---
+        const ITENS_LOJA = [
+            // Consumíveis
+            { id: 'pocao', nome: "Poção de Vida", preco: 50, tipo: "Consumivel", efeito: { hp: 10 }, desc: "Recupera 10 PV" },
+            { id: 'mana', nome: "Poção de Mana", preco: 50, tipo: "Consumivel", efeito: { mana: 10 }, desc: "Recupera 10 PM" },
+
+            // Armas Humanas
+            { id: 'espada_curta', nome: "Espada Curta", preco: 200, tipo: "Arma", bonus: { forca: 1, habilidade: 1 }, desc: "Comum entre humanos." },
+            { id: 'espada_longa', nome: "Espada Longa", preco: 600, tipo: "Arma", bonus: { forca: 3 }, desc: "Lâmina pesada de aço." },
+
+            // Armas Élficas
+            { id: 'arco_elfico', nome: "Arco Élfico", preco: 500, tipo: "Arma", bonus: { habilidade: 3 }, desc: "Feito de madeira ancestral." },
+            { id: 'laminas_gemeas', nome: "Lâminas Gêmeas", preco: 800, tipo: "Arma", bonus: { habilidade: 2, poderDeFogo: 1 }, desc: "Ágeis e letais." },
+
+            // Armas Anãs
+            { id: 'machado_guerra', nome: "Machado de Guerra", preco: 700, tipo: "Arma", bonus: { forca: 4, habilidade: -1 }, desc: "Devastador mas pesado." },
+            { id: 'martelo_forja', nome: "Martelo da Forja", preco: 400, tipo: "Arma", bonus: { forca: 2, resistencia: 1 }, desc: "Ferramenta e arma." },
+
+            // Armas Orcs
+            { id: 'clava_espinhos', nome: "Clava com Espinhos", preco: 300, tipo: "Arma", bonus: { forca: 3, habilidade: -2 }, desc: "Brutalidade pura." },
+            { id: 'machadao_duplo', nome: "Machadão Duplo", preco: 1200, tipo: "Arma", bonus: { forca: 5 }, desc: "Requer muita força." },
+
+            // Equipamento Mágico
+            { id: 'cajado_aprendiz', nome: "Cajado de Aprendiz", preco: 300, tipo: "Arma", bonus: { poderDeFogo: 2 }, desc: "Para iniciantes na magia." },
+            { id: 'varinha_cristal', nome: "Varinha de Cristal", preco: 2500, tipo: "Arma", bonus: { poderDeFogo: 4, mana: 10 }, desc: "Amplifica muito a magia." },
+
+            // Armaduras
+            { id: 'couro', nome: "Armadura de Couro", preco: 300, tipo: "Armadura", bonus: { armadura: 1, habilidade: 1 }, desc: "Leve e flexível." },
+            { id: 'malha', nome: "Cota de Malha", preco: 600, tipo: "Armadura", bonus: { armadura: 3, habilidade: -1 }, desc: "Boa proteção." },
+            { id: 'placas', nome: "Armadura de Placas", preco: 1800, tipo: "Armadura", bonus: { armadura: 5, habilidade: -2 }, desc: "Tanque de guerra ambulante." },
+            { id: 'manto_mago', nome: "Manto Arcano", preco: 1500, tipo: "Armadura", bonus: { armadura: 1, resistencia: 2, mana: 5 }, desc: "Proteção mágica." }
+        ];
+
+        const RANKS_GUILDA = ['F', 'E', 'D', 'C', 'B', 'A', 'S', 'SS'];
+
+        const LOCAIS_FIXOS = [
+            { nome: "Vila Verdejante", tipo: "Vila", bioma: "Planície", descricao: "Uma ilha pacífica cercada pelo mar.", x: 44, y: 74 },
+            { nome: "Floresta Sombria", tipo: "Floresta", bioma: "Sombria", descricao: "Árvores mortas e terras amaldiçoadas.", x: 88, y: 50 },
+            { nome: "Bosque Ancestral", tipo: "Floresta", bioma: "Floresta", descricao: "Árvores gigantes e magia antiga.", x: 36, y: 52 },
+            { nome: "Montanhas de Gelo", tipo: "Montanha", bioma: "Gelo", descricao: "Picos eternamente congelados e perigosos.", x: 62, y: 23 },
+            { nome: "Montanhas de Ferro", tipo: "Montanha", bioma: "Montanha", descricao: "Minas antigas e picos rochosos.", x: 50, y: 15 },
+            { nome: "Pântano da Perdição", tipo: "Pântano", bioma: "Pântano", descricao: "Águas tóxicas e criaturas venenosas.", x: 75, y: 80 },
+            { nome: "Cidadela Real", tipo: "Cidade", bioma: "Urbano", descricao: "A capital do reino, estratégica entre os rios.", x: 50, y: 56 }
+        ];
+
+        const Gerador = {
+            monstro: (nivel, local) => {
+                // Pools de Monstros por Região
+                const POOLS = {
+                    "Vila Verdejante": [
+                        { nome: "Ratataz", baseHp: 10, baseDano: 2, xp: 15, ouro: 5 },
+                        { nome: "Slime", baseHp: 12, baseDano: 2, xp: 18, ouro: 6 },
+                        { nome: "Bandido Pé-de-Chinelo", baseHp: 15, baseDano: 3, xp: 20, ouro: 10 }
+                    ],
+                    "Bosque Ancestral": [
+                        { nome: "Lobo Faminto", baseHp: 25, baseDano: 5, xp: 40, ouro: 8, drop: "Pele de Lobo" },
+                        { nome: "Urso Pardo", baseHp: 60, baseDano: 8, xp: 90, ouro: 15, drop: "Garra de Urso" },
+                        { nome: "Javali Selvagem", baseHp: 35, baseDano: 6, xp: 50, ouro: 10 },
+                        { nome: "Bandido da Estrada", baseHp: 30, baseDano: 5, xp: 45, ouro: 25 }
+                    ],
+                    "Floresta Sombria": [
+                        { nome: "Esqueleto Guerreiro", baseHp: 30, baseDano: 6, xp: 50, ouro: 12, drop: "Osso Antigo" },
+                        { nome: "Aranha Gigante", baseHp: 40, baseDano: 8, xp: 60, ouro: 15, drop: "Veneno de Aranha" },
+                        { nome: "Goblin Saqueador", baseHp: 20, baseDano: 4, xp: 35, ouro: 10 },
+                        { nome: "Espectro", baseHp: 50, baseDano: 10, xp: 120, ouro: 40, drop: "Ectoplasma" },
+                        { nome: "Dragão Jovem", baseHp: 150, baseDano: 15, xp: 400, ouro: 150, drop: "Escama de Dragão" } // Chefe Raro
+                    ],
+                    "Montanhas de Ferro": [
+                        { nome: "Orc Guerreiro", baseHp: 55, baseDano: 9, xp: 85, ouro: 25, drop: "Machado Velho" },
+                        { nome: "Troll da Montanha", baseHp: 120, baseDano: 12, xp: 180, ouro: 50, drop: "Couro de Troll" },
+                        { nome: "Golem de Pedra", baseHp: 150, baseDano: 8, xp: 200, ouro: 80, drop: "Minério de Ferro" }
+                    ],
+                    "Pântano da Perdição": [
+                        { nome: "Slime Tóxico", baseHp: 40, baseDano: 5, xp: 60, ouro: 15 },
+                        { nome: "Cobra Gigante", baseHp: 50, baseDano: 9, xp: 80, ouro: 20, drop: "Presa de Cobra" },
+                        { nome: "Crocodilo Ancião", baseHp: 90, baseDano: 11, xp: 130, ouro: 30, drop: "Couro Rígido" }
+                    ],
+                    "Montanhas de Gelo": [
+                        { nome: "Lobo das Neves", baseHp: 45, baseDano: 7, xp: 65, ouro: 12, drop: "Pele de Lobo Branco" },
+                        { nome: "Yeti", baseHp: 150, baseDano: 15, xp: 300, ouro: 70, drop: "Pele de Yeti" },
+                        { nome: "Elemental de Gelo", baseHp: 110, baseDano: 18, xp: 220, ouro: 50, drop: "Fragmento de Gelo" },
+                        { nome: "Guerreiro Nórdico", baseHp: 60, baseDano: 10, xp: 100, ouro: 40 },
+                        { nome: "Gigante de Gelo", baseHp: 300, baseDano: 25, xp: 700, ouro: 300, drop: "Armadura Congelada" },
+                        { nome: "Dragão Branco", baseHp: 500, baseDano: 35, xp: 1200, ouro: 1000, drop: "Lâmina de Gelo" }
+                    ],
+                    "Cidadela Real": [
+                        { nome: "Rato de Esgoto", baseHp: 15, baseDano: 3, xp: 10, ouro: 2 },
+                        { nome: "Ladrão Urbano", baseHp: 25, baseDano: 5, xp: 40, ouro: 50 }
+                    ]
+                };
+
+                // NÍVEIS MÁXIMOS POR REGIÃO (Para evitar scaling infinito)
+                const LEVEL_CAPS = {
+                    "Vila Verdejante": 5,
+                    "Floresta Sombria": 15,
+                    "Bosque Ancestral": 10,
+                    "Montanhas de Gelo": 35,
+                    "Montanhas de Ferro": 25,
+                    "Pântano da Perdição": 20,
+                    "Cidadela Real": 8 // Área inicial/segura
+                    // Locais sem cap (undefined) escalarão livremente
+                };
+
+                // Seleciona a pool baseada no local, ou usa Bosque como fallback
+                let pool = POOLS[local] || POOLS["Bosque Ancestral"];
+
+                // Escolhe um monstro aleatório
+                const base = pool[Math.floor(Math.random() * pool.length)];
+
+                // Scaling: O monstro escala com o jogador, MAS respeitando o cap da região
+                const capRegiao = LEVEL_CAPS[local] || 999;
+                const nivelEfetivo = Math.min(nivel, capRegiao);
+
+                // Multiplicador de força baseado no nível efetivo
+                const mult = 1 + (nivelEfetivo * 0.15); // +15% status por nível
+
+                // Multiplicador de XP diferenciado (escala mais rápido para acompanhar a curva exponencial)
+                let multXp = 1 + (nivelEfetivo * 0.30); // antes era 0.15
+
+                // Bônus para monstros com drop (Elites/Chefes implícitos)
+                if (base.drop) multXp *= 1.5;
+
+                return {
+                    ...base,
+                    hp: Math.floor(base.baseHp * mult),
+                    maxHp: Math.floor(base.baseHp * mult),
+                    dano: Math.floor(base.baseDano * mult),
+                    xp: Math.floor(base.xp * multXp),
+                    ouro: Math.floor(base.ouro * mult),
+                    uid: Date.now()
+                };
+
+
+            },
+            missao: (rank) => {
+                const tipos = ['Eliminar', 'Coletar'];
+                const alvos = ['Goblin', 'Erva', 'Bandido', 'Relíquia', 'Lobo', 'Orc', 'Slime']; // Singulares para facilitar match
+                const tipo = tipos[Math.floor(Math.random() * tipos.length)];
+                const alvo = alvos[Math.floor(Math.random() * alvos.length)];
+                const rankIdx = RANKS_GUILDA.indexOf(rank);
+                const qtdBase = 3 + (rankIdx * 2); // F:3, E:5, D:7...
+                const qtd = Math.floor(qtdBase + (Math.random() * rankIdx)); // Variação
+
+                return {
+                    id: Math.random(),
+                    titulo: `${tipo} ${alvo}s`,
+                    desc: `A guilda precisa que você vá ${tipo === 'Eliminar' ? 'caçar' : 'buscar'} ${alvo}s nos arredores.`,
+                    rank,
+                    req: qtd,
+                    atual: 0,
+                    xp: 100 * (rankIdx + 1),
+                    ouro: 50 * (rankIdx + 1)
+                };
+            }
+        };
+
+        const MenuPrincipal = ({ onNovo, onContinuar, onCarregar, temSave }) => (
+            <div className="min-h-screen flex flex-col items-center justify-center bg-black p-4 bg-[url('https://images.unsplash.com/photo-1605806616949-1e87b487bc2a?q=80&w=2560')] bg-cover relative">
+                <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px]"></div>
+                <div className="relative z-10 text-center animate-slide">
+                    <h1 className="text-6xl md:text-8xl font-medieval text-amber-500 mb-2 drop-shadow-[0_0_15px_rgba(245,158,11,0.8)]">Crônicas do Infinito</h1>
+                    <p className="text-xl text-zinc-300 tracking-widest uppercase mb-12 font-fantasy">Edição Portátil</p>
+
+                    <div className="flex flex-col gap-4 w-full max-w-md mx-auto">
+                        {temSave && (
+                            <button onClick={onContinuar} className="action-btn px-8 py-4 bg-amber-600 hover:bg-amber-500 text-black font-bold rounded-xl text-xl border-2 border-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.3)]">
+                                CONTINUAR
+                            </button>
+                        )}
+                        <button onClick={onNovo} className="action-btn px-8 py-4 bg-zinc-800 hover:bg-zinc-700 text-zinc-100 font-bold rounded-xl text-xl border border-zinc-600">
+                            NOVO JOGO
+                        </button>
+                        <button onClick={onCarregar} className="action-btn px-8 py-4 bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 font-bold rounded-xl text-lg border border-zinc-700">
+                            CARREGAR JOGO
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+
+        const App = () => {
+            const [view, setView] = React.useState('menu'); // Inicia no menu
+            const [jogador, setJogador] = React.useState(null);
+            const [logs, setLogs] = React.useState([]);
+            const [monstros, setMonstros] = React.useState([]);
+            const [modal, setModal] = React.useState(null);
+            const [missoesDiponiveis, setMissoesDisponiveis] = React.useState([]);
+            const [versaoSave, setVersaoSave] = React.useState(0); // Para forçar re-render dos saves
+
+            // --- ESTADO CAMPEONATO ---
+            const [campeonatoDisponivel, setCampeonatoDisponivel] = React.useState(false);
+            const [tempoAteCampeonato, setTempoAteCampeonato] = React.useState(600); // 10 minutos (600s)
+            const [rodadaCampeonato, setRodadaCampeonato] = React.useState(0);
+            const [campeonatoAtivo, setCampeonatoAtivo] = React.useState(false);
+
+            const logRef = React.useRef(null);
+
+
+
+            // --- TIMER DO CAMPEONATO ---
+            React.useEffect(() => {
+                const timer = setInterval(() => {
+                    setTempoAteCampeonato(prev => {
+                        if (prev <= 0) {
+                            setCampeonatoDisponivel(true);
+                            // Se ficar disponível, reinicia o contador para fechar ou próximo ciclo
+                            // Vamos deixar disponível por 2 minutos
+                            if (prev <= -120) { // 2 minutos aberto
+                                setCampeonatoDisponivel(false);
+                                return 600; // Reseta para 10 min
+                            }
+                            return prev - 1;
+                        }
+                        return prev - 1;
+                    });
+                }, 1000);
+                return () => clearInterval(timer);
+            }, []);
+
+            React.useEffect(() => {
+                if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
+            }, [logs]);
+
+            const addLog = (msg, tipo = 'comum') => {
+                setLogs(prevLogs => [...prevLogs, { id: Date.now(), msg, tipo }]);
+            };
+
+            const evoluirAtributo = (attr) => {
+                if (!jogador.pontosAtributo || jogador.pontosAtributo <= 0) return addLog("Sem pontos de atributo!");
+
+                setJogador(p => ({
+                    ...p,
+                    pontosAtributo: p.pontosAtributo - 1,
+                    atributosBase: {
+                        ...p.atributosBase,
+                        [attr]: p.atributosBase[attr] + 1
+                    }
+                }));
+                addLog(`Aumentou ${attr} para ${jogador.atributosBase[attr] + 1}!`, 'upgrade');
+            };
+
+            const criarPersonagem = (dados) => {
+                const racaData = RACAS[dados.raca];
+                const stats = { forca: 1, habilidade: 1, resistencia: 1, armadura: 1, poderDeFogo: 1 };
+                Object.keys(racaData.bonus).forEach(k => stats[k] += racaData.bonus[k]);
+
+                setJogador({
+                    nome: dados.nome, raca: dados.raca, classe: dados.classe,
+                    nivel: 1, xp: 0, proximoXp: 100,
+                    hp: 20 + (stats.resistencia * 5), maxHp: 20 + (stats.resistencia * 5),
+                    mana: 10 + (stats.resistencia * 5), maxMana: 10 + (stats.resistencia * 5),
+                    ouro: 50, local: "Vila Verdejante", atributosBase: stats,
+                    pontosAtributo: 0, // Pontos livres para distribuir
+                    equipamento: { arma: null, armadura: null, acessorio: null },
+                    magias: [], inventario: [],
+                    rankGuilda: 'F', missoesCompletas: 0, missaoAtiva: null
+                });
+                setMonstros([]); // Resetar monstros antigos
+                setMissoesDisponiveis([]); // Resetar missões da guilda
+                setLogs([]); // Limpar logs antigos
+                setView('jogo');
+                addLog(`Bem-vindo, ${dados.classe} ${dados.nome}!`);
+            };
+
+            // Recalcula atributos totais (Base + Equipamentos)
+            const getAtributosTotais = (logicaJogador = jogador) => {
+                if (!logicaJogador) return { forca: 0, habilidade: 0, resistencia: 0, armadura: 0, poderDeFogo: 0 };
+                let final = { ...logicaJogador.atributosBase };
+
+                // Soma bonus dos equipamentos
+                Object.values(logicaJogador.equipamento).forEach(item => {
+                    if (item && item.bonus) {
+                        Object.keys(item.bonus).forEach(k => {
+                            final[k] = (final[k] || 0) + item.bonus[k];
+                        });
+                    }
+                });
+                return final;
+            };
+
+            // OBS: Vamos usar essa função helpers onde precisarmos dos status para calculo de dano
+            const atributos = React.useMemo(() => getAtributosTotais(jogador), [jogador]);
+
+            // --- Gerenciamento de Inventário ---
+            const comprarItem = (item) => {
+                if (jogador.ouro < item.preco) return addLog("Ouro insuficiente.");
+
+                const consumivel = item.tipo === 'Consumivel';
+                if (consumivel) {
+                    // Lógica Instantânea para Poções (Simplificação: Compra e usa na hora ou guarda? Vamos guardar se for portatil)
+                    // O user pediu "guardar". Entao vai pro inventario.
+                }
+
+                setJogador(p => ({
+                    ...p,
+                    ouro: p.ouro - item.preco,
+                    inventario: [...p.inventario, { ...item, uid: Math.random() }] // UID para itens iguais não bugar
+                }));
+                addLog(`Comprou ${item.nome}.`, 'loot');
+            };
+
+            const usarItem = (item) => {
+                if (item.tipo === 'Consumivel') {
+                    setJogador(p => {
+                        const novoInv = p.inventario.filter(i => i.uid !== item.uid);
+                        return {
+                            ...p,
+                            hp: item.efeito?.hp ? Math.min(p.maxHp, p.hp + item.efeito.hp) : p.hp,
+                            mana: item.efeito?.mana ? Math.min(p.maxMana, p.mana + item.efeito.mana) : p.mana,
+                            inventario: novoInv
+                        };
+                    });
+                    addLog(`Usou ${item.nome}.`, 'cura');
+                } else {
+                    // É equipamento
+                    equiparItem(item);
+                }
+            };
+
+            const equiparItem = (item) => {
+                const slot = item.tipo === 'Arma' ? 'arma' : item.tipo === 'Armadura' ? 'armadura' : 'acessorio';
+                if (!['arma', 'armadura', 'acessorio'].includes(slot)) return; // Caso item nao tenha tipo certo
+
+                setJogador(p => {
+                    const itemAtual = p.equipamento[slot];
+                    let novoInv = p.inventario.filter(i => i.uid !== item.uid);
+
+                    // Se ja tem algo equipado, devolve pro inventario
+                    if (itemAtual) novoInv.push(itemAtual);
+
+                    return {
+                        ...p,
+                        equipamento: { ...p.equipamento, [slot]: item },
+                        inventario: novoInv
+                    };
+                });
+                addLog(`Equipou ${item.nome}.`, 'info');
+            };
+
+            const desequipar = (slot) => {
+                setJogador(p => {
+                    const item = p.equipamento[slot];
+                    if (!item) return p;
+                    return {
+                        ...p,
+                        equipamento: { ...p.equipamento, [slot]: null },
+                        inventario: [...p.inventario, item]
+                    };
+                });
+            };
+
+            // ... (viajar, explorar... mantem igual mas ATENÇÃO: usar 'atributos' variable calculada em vez de 'jogador.atributos') ...
+
+            const aprenderMagia = (magia) => {
+                if (jogador.ouro < magia.custo) return addLog("Ouro insuficiente.");
+                if (jogador.magias.some(m => m.id === magia.id)) return addLog("Já conhece essa magia.");
+
+                setJogador(p => ({
+                    ...p,
+                    ouro: p.ouro - magia.custo,
+                    magias: [...p.magias, magia]
+                }));
+                addLog(`Aprendeu ${magia.nome}!`, 'magia');
+            };
+
+            // --- Helpers Visuais ---
+            const getMonsterIcon = (nome) => {
+                // Filtros
+                const estiloBranco = { filter: 'grayscale(100%) brightness(1000%)' };
+                const estiloVerde = { filter: 'hue-rotate(120deg) brightness(80%)' }; // Vermelho -> Verde
+                const estiloTroll = { filter: 'sepia(100%) hue-rotate(50deg) saturate(300%)' }; // Tom terroso/verde musgo
+
+                if (nome.includes("Dragão Branco")) return <span style={estiloBranco} className="drop-shadow-[0_0_15px_rgba(255,255,255,0.9)]">🐉</span>;
+
+                if (nome.includes("Dragão")) return "🐉";
+                if (nome.includes("Lobo")) return "🐺";
+
+                // Yeti agora como Macaco Branco
+                if (nome.includes("Yeti")) return <span style={estiloBranco}>🦍</span>;
+
+                if (nome.includes("Elemental")) return <span className="animate-spin text-cyan-200 inline-block">🌀</span>;
+
+                // Guerreiro Nórdico Branco
+                if (nome.includes("Guerreiro Nórdico")) return <span style={estiloBranco}>😠</span>;
+
+                // Aranha antes de Gigante para "Aranha Gigante" funcionar
+                if (nome.includes("Aranha")) return "🕷️";
+
+                // Prioridade para Pântano (Cobra/Crocodilo)
+                if (nome.includes("Cobra") || nome.includes("Serpente")) return "🐍";
+                if (nome.includes("Crocodilo")) return "🐊";
+                if (nome.includes("Slime")) return "🧪";
+
+                if (nome.includes("Gigante")) return "🥶";
+
+                // Goblins e Orcs Verdes
+                if (nome.includes("Goblin")) return <span style={estiloVerde}>👺</span>;
+                if (nome.includes("Orc")) return <span style={estiloVerde}>👹</span>;
+
+                // Troll (Substituto para o emoji novo que falhou) - Usando Zumbi ou Oni com outra cor?
+                // Vamos usar o Oni (👹) mas com cor diferente (Marrom/Verde Escuro) para diferenciar do Orc
+                if (nome.includes("Troll")) return <span style={estiloTroll}>👹</span>;
+
+                if (nome.includes("Esqueleto") || nome.includes("Espectro")) return "💀";
+                if (nome.includes("Guerreiro") || nome.includes("Bandido")) return "😠";
+                if (nome.includes("Urso")) return "🐻";
+                if (nome.includes("Javali")) return "🐗"; // Novo
+                if (nome.includes("Cobra") || nome.includes("Serpente")) return "�"; // Novo
+                if (nome.includes("Crocodilo")) return "🐊"; // Novo
+                if (nome.includes("Slime")) return "🧪"; // Novo (ou 🦠)
+                if (nome.includes("Rato") || nome.includes("Ratataz")) return "🐀";
+                if (nome.includes("Golem")) return "🗿";
+
+                return "👾";
+            };
+
+            // --- Ações de Jogo ---
+            // --- Ações de Jogo ---
+            const explorar = () => {
+                if (jogador.hp <= 0) return addLog("Você está desmaiado!", 'perigo');
+
+                // Lógica de Encontro (70% nada, 30% monstro) - Ajustado para teste: 50%
+                if (Math.random() > 0.5) {
+                    // Combate!
+                    // Chance de virar uma batalha em grupo (30%)
+                    const qtdMonstros = Math.random() > 0.7 ? (Math.random() > 0.6 ? 3 : 2) : 1;
+
+                    const novosMonstros = [];
+                    for (let i = 0; i < qtdMonstros; i++) {
+                        const m = Gerador.monstro(jogador.nivel, jogador.local);
+                        m.uid = Date.now() + i; // ID único para controle React
+                        novosMonstros.push(m);
+                    }
+
+                    setMonstros(novosMonstros);
+                    addLog(`Você encontrou ${qtdMonstros > 1 ? 'um grupo de inimigos!' : 'um inimigo!'}`, 'perigo');
+                } else {
+                    // Evento de Exploração (Item, Ouro ou Nada)
+                    const sorte = Math.random();
+                    if (sorte > 0.7) {
+                        const ouroAchado = Math.floor(Math.random() * 20 * jogador.nivel) + 10;
+                        setJogador(p => ({ ...p, ouro: p.ouro + ouroAchado }));
+                        addLog(`Encontrou ${ouroAchado} ouro!`, 'loot');
+                    } else if (sorte > 0.9) {
+                        // Drop de item simples (Poção)
+                        const pocao = { id: 'pocao_vida', nome: "Poção de Vida", tipo: "Consumível", efeito: "Cura 50 PV", valor: 50 };
+                        // Simplificação: Adiciona direto (futuro: inventário real)
+                        addLog("Encontrou uma Poção de Vida! (Não implementado inventário full ainda)", 'loot');
+                    } else {
+                        addLog("Explorou a área mas não encontrou nada.", 'comum');
+                    }
+                }
+            };
+
+            const conjurar = (magia) => {
+                const custo = magia.mana;
+                if (jogador.mana < custo) return addLog("Mana insuficiente!", 'perigo');
+                if (monstros.length === 0 && magia.tipo === 'Ataque') return addLog("Não há inimigos para atacar.");
+
+                // Efeito
+                if (magia.tipo === 'Cura') {
+                    const cura = Math.floor(magia.poder * (jogador.nivel / 2 + 1) + atributos.habilidade);
+                    setJogador(p => ({
+                        ...p,
+                        hp: Math.min(p.maxHp, p.hp + cura),
+                        mana: p.mana - custo
+                    }));
+                    addLog(`Você conjurou ${magia.nome} e recuperou ${cura} PV.`, 'cura');
+                } else if (magia.tipo === 'Ataque') {
+                    const alvoIndex = 0;
+                    const alvo = monstros[alvoIndex];
+                    // Fórmula Nova: Dano Base da Magia + Atributo Total (Base + Arma)
+                    // Poder de Fogo para magias ofensivas
+                    const danoBase = Math.floor(magia.poder + atributos.poderDeFogo);
+                    const dano = Math.floor(danoBase * (1 + Math.random() * 0.2)); // Variação de 20%
+
+                    addLog(`Você lançou ${magia.nome} em ${alvo.nome} causando ${dano} de dano!`, 'magia');
+
+                    const novoHpAlvo = alvo.hp - dano;
+                    let novosMonstros = monstros.map((m, i) => i === alvoIndex ? { ...m, hp: novoHpAlvo } : m);
+
+                    if (novoHpAlvo <= 0) {
+                        addLog(`${alvo.nome} foi carbonizado!`, 'sucesso');
+
+                        if (campeonatoAtivo) {
+                            avancarRodadaCampeonato();
+                            return; // Encerra o turno de ataque aqui
+                        }
+
+                        setJogador(p => {
+                            let novaXp = p.xp + alvo.xp;
+                            let novoNivel = p.nivel;
+                            let novoProximoXp = p.proximoXp; // Initialize with current
+                            let msgLevelUp = "";
+
+                            // Lógica de Trava de Nível
+                            if (p.nivel >= NIVEL_MAX_CLASSE_BASICA && !p.classeEvoluida) {
+                                if (novaXp >= p.proximoXp) {
+                                    novaXp = p.proximoXp - 1; // Trava XP no máximo do nível
+                                    addLog(`Nível Máximo (${NIVEL_MAX_CLASSE_BASICA}) atingido! Vá à Guilda para evoluir.`, 'perigo');
+                                }
+                            }
+
+                            if (novaXp >= p.proximoXp) {
+                                novoNivel++;
+                                novaXp = novaXp - p.proximoXp; // Reset XP (overflow)
+                                novoProximoXp = Math.floor(p.proximoXp * 1.5);
+                                msgLevelUp = `LEVEL UP! Nível ${novoNivel}! (+1 Ponto de Atributo)`;
+                                addLog(msgLevelUp, 'sucesso');
+                            }
+                            return {
+                                ...p,
+                                xp: novaXp, proximoXp: novoProximoXp || p.proximoXp, ouro: p.ouro + alvo.ouro, nivel: novoNivel,
+                                pontosAtributo: msgLevelUp ? (p.pontosAtributo || 0) + 1 : (p.pontosAtributo || 0), // Ganha 1 ponto
+                                hp: msgLevelUp ? p.maxHp + 10 : p.hp, maxHp: msgLevelUp ? p.maxHp + 10 : p.maxHp,
+                                mana: msgLevelUp ? p.maxMana + 5 : p.mana - custo, maxMana: msgLevelUp ? p.maxMana + 5 : p.maxMana // Deduz mana se nao upou, recupera se upou
+                            };
+                        });
+                        novosMonstros = novosMonstros.filter((_, i) => i !== alvoIndex);
+                    } else {
+                        // Se não matou, apenas deduz mana (já que o setJogador acima só roda no kill)
+                        setJogador(p => ({ ...p, mana: p.mana - custo }));
+                    }
+
+                    // Contra-ataque
+                    let danoTotal = 0;
+                    novosMonstros.forEach(m => {
+                        const danoM = Math.max(1, m.dano - atributos.armadura);
+                        danoTotal += danoM;
+                        addLog(`${m.nome} atacou! -${danoM} PV`, 'perigo');
+                    });
+                    if (danoTotal > 0) {
+                        setJogador(p => ({ ...p, hp: Math.max(0, p.hp - danoTotal) }));
+                    }
+
+                    setMonstros(novosMonstros);
+                    if (novosMonstros.length === 0 && monstros.length > 0) {
+                        addLog("Inimigos derrotados pela magia!", 'sucesso');
+                    }
+                } else if (magia.tipo === 'Buff') {
+                    addLog("Buffs temporários não implementados ainda.", 'perigo');
+                    setJogador(p => ({ ...p, mana: p.mana - custo }));
+                }
+            };
+
+            const fugir = () => {
+                if (monstros.length === 0) return;
+
+                // Chance Base: 50% + (Habilidade * 5%)
+                // Ex: Hab 1 = 55%, Hab 5 = 75%
+                const chance = 0.5 + (atributos.habilidade * 0.05);
+
+                // Rolagem
+                if (Math.random() < chance) {
+                    addLog("Você fugiu com sucesso! 🏃💨", 'sucesso');
+                    setMonstros([]);
+                    // setIndiceAlvo não existe nesta versão simplificada
+                } else {
+                    addLog("Falha ao fugir! Você tropeçou... 😱", 'perigo');
+                    // Perde o turno, monstros atacam (Lógica inline, pois turnoMonstro não existe como func)
+                    let danoTotal = 0;
+                    monstros.forEach(m => {
+                        // Dano do monstro x Armadura do Jogador
+                        const danoM = Math.max(1, m.dano - atributos.armadura);
+                        danoTotal += danoM;
+                        addLog(`${m.nome} atacou! -${danoM} PV`, 'perigo');
+                    });
+
+                    if (danoTotal > 0) {
+                        setJogador(p => ({ ...p, hp: Math.max(0, p.hp - danoTotal) }));
+                    }
+                }
+            };
+
+            const atacar = () => {
+                if (monstros.length === 0) return;
+
+                // Ataca o primeiro monstro da fila (alvo) - Simplificação: Sempre o primeiro
+                const alvoIndex = 0;
+                const alvo = monstros[alvoIndex];
+
+                // Dano Jogador -> Monstro
+                // Fórmula Nova: Força Total (Base + Arma) + Variação
+                const dano = Math.floor(atributos.forca + (Math.random() * 3)); // Forca direta + 0a3 de sorte
+                const novoHpAlvo = alvo.hp - dano;
+
+                addLog(`Você causou ${dano} de dano em ${alvo.nome}.`);
+
+                // Prepara lista de monstros para o próximo estado (atualizando o alvo)
+                let novosMonstros = monstros.map((m, i) => i === alvoIndex ? { ...m, hp: novoHpAlvo } : m);
+
+                // Verifica morte do alvo
+                if (novoHpAlvo <= 0) {
+                    addLog(`${alvo.nome} foi derrotado!`, 'sucesso');
+
+                    if (campeonatoAtivo) {
+                        avancarRodadaCampeonato();
+                        return; // Encerra ataque
+                    }
+
+                    // Drops e XP
+                    setJogador(p => {
+                        let novaXp = p.xp + alvo.xp;
+                        let novoNivel = p.nivel;
+                        let novoProximoXp = p.proximoXp;
+                        let msgLevelUp = "";
+
+                        // Lógica de Trava de Nível
+                        if (p.nivel >= NIVEL_MAX_CLASSE_BASICA && !p.classeEvoluida) {
+                            if (novaXp >= p.proximoXp) {
+                                novaXp = p.proximoXp - 1;
+                                addLog(`Nível Máximo (${NIVEL_MAX_CLASSE_BASICA}) atingido! Vá à Guilda para evoluir.`, 'perigo');
+                            }
+                        }
+
+                        if (novaXp >= p.proximoXp) {
+                            novoNivel++;
+                            novoProximoXp = Math.floor(p.proximoXp * 1.5);
+                            msgLevelUp = `LEVEL UP! Nível ${novoNivel}! (+1 Ponto de Atributo)`;
+                            addLog(msgLevelUp, 'sucesso');
+                        }
+
+                        // Cura no level up
+                        const hpFinal = msgLevelUp ? p.maxHp + 10 : p.hp;
+                        const maxHpFinal = msgLevelUp ? p.maxHp + 10 : p.maxHp;
+
+                        return {
+                            ...p,
+                            xp: novaXp,
+                            ouro: p.ouro + alvo.ouro,
+                            nivel: novoNivel,
+                            proximoXp: novoProximoXp,
+                            pontosAtributo: msgLevelUp ? (p.pontosAtributo || 0) + 1 : (p.pontosAtributo || 0), // Ganha 1 ponto
+                            hp: hpFinal,
+                            maxHp: maxHpFinal,
+                            mana: msgLevelUp ? p.maxMana + 5 : p.mana, // Recupera mana no lvl up
+                            maxMana: msgLevelUp ? p.maxMana + 5 : p.maxMana
+                        };
+                    });
+
+                    // Drop Chance
+                    if (alvo.drop && Math.random() > 0.4) {
+                        const itemDrop = {
+                            id: Date.now(),
+                            nome: alvo.drop,
+                            tipo: "Material",
+                            desc: `Obtido de ${alvo.nome}`
+                        };
+                        if (alvo.drop.includes("Lâmina") || alvo.drop.includes("Armadura") || alvo.drop.includes("Machado")) {
+                            itemDrop.tipo = "Equipamento";
+                            itemDrop.bonus = alvo.drop.includes("Armadura") ? { armadura: 5 } : { forca: 5 };
+                        }
+                        setJogador(p => ({ ...p, inventario: [...p.inventario, itemDrop] }));
+                        addLog(`Drop: ${alvo.drop}`, 'loot');
+                    }
+
+                    if (jogador.missaoAtiva) {
+                        // Missão Normal de Eliminar
+                        // Match mais flexível: verifica se o nome do monstro (parte dele) está na descrição ou título
+                        if (jogador.missaoAtiva.titulo.includes("Eliminar") && (jogador.missaoAtiva.titulo.includes(alvo.nome) || alvo.nome.includes(jogador.missaoAtiva.titulo.split(" ")[1].slice(0, -1)))) {
+                            // Tenta match simples da palavra chave (ex: "Goblin" em "Eliminar Goblins")
+                            // A logica acima é meio complexa, vamos simplificar no update do gerador para usar singular
+                            // Gerador agora usa Singular. "Eliminar Goblins". Title split [1] = "Goblins". Slice 0,-1 = "Goblin".
+                            // Alvo nome "Goblin Saqueador". Includes "Goblin"? Sim.
+                            setJogador(p => {
+                                const missao = p.missaoAtiva;
+                                const atualizado = { ...missao, atual: Math.min(missao.atual + 1, missao.req) };
+                                if (atualizado.atual >= atualizado.req && missao.atual < missao.req) {
+                                    addLog("Missão Cumprida! Volte à guilda.", 'sucesso');
+                                }
+                                return { ...p, missaoAtiva: atualizado };
+                            });
+                        }
+                        // Missão de Evolução (Qualquer inimigo conta, ou só Boss? Vamos fazer qualquer um por enquanto pra ser "Derrote 5 inimigos poderosos" -> "Derrote 5 inimigos")
+                        if (jogador.missaoAtiva.tipo === 'evolucao') {
+                            setJogador(p => {
+                                const missao = p.missaoAtiva;
+                                const atualizado = { ...missao, atual: Math.min(missao.atual + 1, missao.req) };
+                                if (atualizado.atual >= atualizado.req && missao.atual < missao.req) {
+                                    addLog("Provação Completa! Volte à guilda para evoluir!", 'sucesso');
+                                }
+                                return { ...p, missaoAtiva: atualizado };
+                            });
+                        }
+                    }
+
+                    // Remove o morto
+                    novosMonstros = novosMonstros.filter((_, i) => i !== alvoIndex);
+                }
+
+                // Contra-Ataque dos Sobreviventes
+                let danoTotal = 0;
+                novosMonstros.forEach(m => {
+                    const danoM = Math.max(1, m.dano - atributos.armadura);
+                    danoTotal += danoM;
+                    addLog(`${m.nome} atacou! -${danoM} PV`, 'perigo');
+                });
+
+                if (danoTotal > 0) {
+                    setJogador(p => {
+                        const novoHp = Math.max(0, p.hp - danoTotal);
+                        if (novoHp <= 0) {
+                            addLog("VOCÊ MORREU...", 'perigo');
+                            setTimeout(respawn, 2000);
+                        }
+                        return { ...p, hp: novoHp };
+                    });
+                }
+
+                setMonstros(novosMonstros);
+
+                if (novosMonstros.length === 0 && monstros.length > 0) { // Se matou o último
+                    addLog("Todos os inimigos foram derrotados!", 'sucesso');
+                }
+            };
+
+            const viajar = (local) => {
+                const custo = 20 + (jogador.nivel * 5);
+                if (jogador.ouro < custo) return addLog("Sem ouro para a carruagem!");
+
+                setModal(null);
+                setMonstros([]);
+                setJogador(p => ({ ...p, local: local.nome, ouro: p.ouro - custo }));
+                addLog(`Viajou para ${local.nome}. (-${custo} Ouro)`);
+            };
+
+            const abrirGuilda = () => {
+                if (missoesDiponiveis.length === 0) {
+                    setMissoesDisponiveis([Gerador.missao(jogador.rankGuilda), Gerador.missao(jogador.rankGuilda), Gerador.missao(jogador.rankGuilda)]);
+                }
+
+                // Check se precisa de missão de evolução
+                if (jogador.nivel >= NIVEL_MAX_CLASSE_BASICA && !jogador.classeEvoluida && !jogador.missaoAtiva) {
+                    const missaoEvolucao = {
+                        id: 'evolucao',
+                        titulo: 'A Provação do Mestre',
+                        desc: `Para se tornar um ${EVOLUCOES[jogador.classe]}, você deve provar seu valor. Derrote 5 inimigos poderosos.`,
+                        rank: 'S',
+                        req: 5,
+                        atual: 0,
+                        xp: 0,
+                        ouro: 1000,
+                        tipo: 'evolucao'
+                    };
+                    // Se não tiver a missão de evolução na lista, adiciona no topo
+                    setMissoesDisponiveis(prev => {
+                        if (prev.some(m => m.tipo === 'evolucao')) return prev;
+                        return [missaoEvolucao, ...prev];
+                    });
+                }
+
+                setModal('guilda');
+            };
+
+            const REQUISITOS_RANK = [3, 8, 15, 25, 40, 60, 100]; // F->E, E->D...
+
+            const cancelarMissao = () => {
+                if (!confirm("Cancelar missão atual? Todo o progresso será perdido.")) return;
+                setJogador(p => ({ ...p, missaoAtiva: null }));
+                addLog("Missão cancelada.", 'perigo');
+            };
+
+            const respawn = () => {
+                setJogador(p => {
+                    const penaOuro = Math.floor(p.ouro * 0.1);
+                    const penaXp = Math.floor(p.xp * 0.1);
+
+                    // Log aqui dentro pode duplicar em StrictMode, mas é visual. 
+                    // Melhor: setar log fora ou ignorar. Vamos manter o log fora com valores estimados ou fazer calculo fora e passar (o bug original podia ser stale state).
+                    // Se o usuário clicava muito rápido, podia enfileirar.
+
+                    return {
+                        ...p,
+                        hp: Math.floor(p.maxHp * 0.5),
+                        ouro: p.ouro - penaOuro,
+                        xp: p.xp - penaXp,
+                        local: "Vila Verdejante"
+                    };
+                });
+                setMonstros([]);
+                addLog(`Você foi resgatado e levado à Vila. (Pena: -10% Ouro/XP)`, 'perigo');
+            };
+
+            const abrirTaverna = () => setModal('taverna');
+
+            const acaoTaverna = (tipo) => {
+                const custoBebida = Math.ceil(jogador.nivel * 2);
+                const custoDescanso = Math.ceil(jogador.nivel * 15);
+
+                if (tipo === 'bebida') {
+                    if (jogador.ouro < custoBebida) return addLog("Sem ouro para beber!");
+                    setJogador(p => ({
+                        ...p,
+                        ouro: p.ouro - custoBebida,
+                        mana: Math.min(p.maxMana, p.mana + 10),
+                        hp: Math.min(p.maxHp, p.hp + 5)
+                    }));
+                    addLog("Glup! Cerveja boa. (+5 PV, +10 PM)", 'sucesso');
+                } else if (tipo === 'descanso') {
+                    if (jogador.ouro < custoDescanso) return addLog("Sem ouro para o quarto!");
+                    setJogador(p => ({
+                        ...p,
+                        ouro: p.ouro - custoDescanso,
+                        hp: p.maxHp,
+                        mana: p.maxMana
+                    }));
+                    addLog("Você dormiu como uma pedra. Energias renovadas!", 'sucesso');
+                    setModal(null);
+                }
+            };
+
+            const aceitarMissao = (missao) => {
+                if (jogador.missaoAtiva) return addLog("Já possui uma missão ativa!");
+                setJogador(p => ({ ...p, missaoAtiva: missao }));
+                setMissoesDisponiveis(p => p.filter(m => m.id !== missao.id));
+                setModal(null);
+                addLog(`Aceitou a missão: ${missao.titulo}`);
+            };
+
+            // --- SISTEMA DE SAVE/LOAD 2.0 ---
+            const getSaves = () => {
+                const saved = localStorage.getItem(STORAGE_KEY_V2);
+                return saved ? JSON.parse(saved) : [];
+            };
+
+            const salvarJogo = () => {
+                const nomeSave = prompt("Nome do Save:", `Save ${jogador.nivel} - ${jogador.classe}`);
+                if (!nomeSave) return;
+
+                const novoSave = {
+                    id: Date.now(),
+                    nome: nomeSave,
+                    data: new Date().toISOString(),
+                    dados: {
+                        jogador: jogador,
+                        missoesDiponiveis: missoesDiponiveis,
+                        logs: logs
+                    }
+                };
+
+                const saves = getSaves();
+                saves.unshift(novoSave); // Adiciona no início (mais recente)
+
+                // Limite de 10 saves
+                if (saves.length > 10) saves.pop();
+
+                localStorage.setItem(STORAGE_KEY_V2, JSON.stringify(saves));
+                setVersaoSave(v => v + 1);
+                addLog("Jogo salvo com sucesso!", 'sucesso');
+                setModal(null);
+            };
+
+            const deletarSave = (id) => {
+                if (!confirm("Tem certeza que deseja deletar este save?")) return;
+                const saves = getSaves().filter(s => s.id !== id);
+                localStorage.setItem(STORAGE_KEY_V2, JSON.stringify(saves));
+                setVersaoSave(v => v + 1);
+            };
+
+
+
+            const carregarSaveEspecifico = (saveData) => {
+                // Compatibilidade com saves antigos (flat vs nested in dados)
+                const dados = saveData.dados || saveData; // Se não tiver .dados, assume que é o próprio objeto (formato antigo/bugado)
+
+                if (dados.jogador) {
+                    setJogador(dados.jogador);
+                    setMissoesDisponiveis(dados.missoesDiponiveis || []);
+                    setLogs(dados.logs || []);
+                    setView('jogo');
+                    setModal(null);
+                    addLog(`Jogo carregado: ${saveData.nome}`, 'sucesso');
+                } else {
+                    alert("Erro: Save corrompido ou incompatível.");
+                }
+            };
+
+            const continuarJogo = () => {
+                const saves = getSaves();
+                if (saves.length > 0) {
+                    carregarSaveEspecifico(saves[0]); // O primeiro é sempre o mais recente
+                }
+            };
+
+            const abrirMenuCarregar = () => {
+                setModal('carregar_menu');
+            };
+
+            const carregarJogo = () => {
+                // Função antiga de carregar botão in-game agora abre o menu de saves
+                setModal('carregar_menu');
+            };
+
+            const reiniciarJogo = () => {
+                if (confirm("Voltar ao Menu Principal? O progresso não salvo será perdido.")) {
+                    setView('menu');
+                    setModal(null);
+                }
+            };
+
+            const iniciarCampeonato = () => {
+                if (!campeonatoDisponivel) return;
+
+                setCampeonatoAtivo(true);
+                setRodadaCampeonato(1);
+                setModal(null);
+
+                // Helper para gerar inimigo de campeonato
+                const gerarInimigoArena = (rodada) => {
+                    // 1. Bioma Aleatório (Excluindo cidades iniciais para mais emoção)
+                    const biomasArena = LOCAIS_FIXOS.filter(l => l.tipo !== 'Vila' && l.tipo !== 'Cidade').map(l => l.nome);
+                    const biomaSorteado = biomasArena[Math.floor(Math.random() * biomasArena.length)] || "Bosque Ancestral";
+
+                    const mobBase = Gerador.monstro(jogador.nivel, biomaSorteado);
+
+                    // 2. Título Aleatório
+                    const titulos = ['Gladiador', 'Veterano', 'Algoz', 'Destruidor', 'Mercenário', 'Caçador'];
+                    const titulosEpicos = ['A Lenda', 'O Imortal', 'O Imperador', 'O Ceifador', 'A Besta'];
+
+                    let prefixo = titulos[Math.floor(Math.random() * titulos.length)];
+                    let isEpico = false;
+
+                    if (rodada === 5) {
+                        prefixo = titulosEpicos[Math.floor(Math.random() * titulosEpicos.length)];
+                        isEpico = true;
+                    }
+
+                    mobBase.nome = `${prefixo} ${mobBase.nome}`;
+
+                    // 3. Escala
+                    // Rodada 1: 1.2x
+                    // Rodada 5: 2.0x + Boss Boost
+                    const escala = 1.0 + (rodada * 0.2);
+
+                    mobBase.hp = Math.floor(mobBase.hp * (isEpico ? escala * 1.5 : escala));
+                    mobBase.maxHp = mobBase.hp;
+                    mobBase.dano = Math.floor(mobBase.dano * (isEpico ? escala * 1.2 : escala));
+                    mobBase.xp = Math.floor(mobBase.xp * (isEpico ? 4 : 2));
+                    mobBase.ouro = Math.floor(mobBase.ouro * (isEpico ? 4 : 2));
+                    mobBase.uid = Date.now();
+
+                    return mobBase;
+                };
+
+                const inimigo = gerarInimigoArena(1);
+                setMonstros([inimigo]);
+                addLog("🏆 O CAMPEONATO COMEÇOU! PREPARE-SE!", 'loot');
+                addLog(`Inimigo vindo de: ${LOCAIS_FIXOS.find(l => POOLS[l.nome]?.some(p => inimigo.nome.includes(p.nome)))?.bioma || 'Mundo Selvagem'}`, 'comum'); // Tentativa de fluff
+            };
+
+            const avancarRodadaCampeonato = () => {
+                if (rodadaCampeonato >= 5) {
+                    // Vitória Final
+                    const bonusOuro = 500 * jogador.nivel;
+                    const bonusXp = 200 * jogador.nivel;
+
+                    setJogador(p => ({
+                        ...p,
+                        ouro: p.ouro + bonusOuro,
+                        xp: p.xp + bonusXp
+                    }));
+
+                    addLog(`🏆 CAMPEÃO! Você venceu o torneio!`, 'sucesso');
+                    addLog(`Recebeu ${bonusOuro} Ouro e ${bonusXp} XP extra!`, 'loot');
+                    alert(`PARABÉNS! VOCÊ É O CAMPEÃO DA ARENA!\n\nPrêmios:\n💰 ${bonusOuro} Ouro\n✨ ${bonusXp} XP`);
+
+                    setCampeonatoAtivo(false);
+                    setRodadaCampeonato(0);
+                    setCampeonatoDisponivel(false); // Fecha o evento
+                    setTempoAteCampeonato(600); // Reset timer
+                } else {
+                    // Próxima Rodada
+                    setRodadaCampeonato(p => p + 1);
+                    const novaRodada = rodadaCampeonato + 1;
+                    addLog(`🔔 RODADA ${novaRodada}/5 COMEÇOU!`, 'comum');
+
+                    // Reutilizar lógica de geração (replicada aqui ou mover para fora? Mover para fora seria ideal mas requer refatorar o escopo. Vou replicar inline melhorado)
+                    // ... Melhor: extrair o gerador para uma const fora? Não tem acesso a LOCAIS_FIXOS se for fora do componente? Tem sim.
+                    // Mas dentro de iniciarCampeonato a função não é visivel aqui.
+                    // VOU COPIAR A LOGICA AQUI PARA GARANTIR FUNCIONAMENTO RÁPIDO.
+
+                    const biomasArena = LOCAIS_FIXOS.filter(l => l.tipo !== 'Vila' && l.tipo !== 'Cidade').map(l => l.nome);
+                    const biomaSorteado = biomasArena[Math.floor(Math.random() * biomasArena.length)] || "Bosque Ancestral";
+
+                    const mobBase = Gerador.monstro(jogador.nivel, biomaSorteado);
+
+                    const titulos = ['Gladiador', 'Veterano', 'Algoz', 'Destruidor', 'Mercenário', 'Caçador'];
+                    const titulosEpicos = ['A Lenda', 'O Imortal', 'O Imperador', 'O Ceifador', 'A Besta'];
+
+                    let prefixo = titulos[Math.floor(Math.random() * titulos.length)];
+                    let isEpico = false;
+
+                    if (novaRodada === 5) {
+                        prefixo = titulosEpicos[Math.floor(Math.random() * titulosEpicos.length)];
+                        isEpico = true;
+                    }
+
+                    mobBase.nome = `${prefixo} ${mobBase.nome}`;
+
+                    const escala = 1.0 + (novaRodada * 0.2);
+
+                    mobBase.hp = Math.floor(mobBase.hp * (isEpico ? escala * 1.5 : escala));
+                    mobBase.maxHp = mobBase.hp;
+                    mobBase.dano = Math.floor(mobBase.dano * (isEpico ? escala * 1.2 : escala));
+                    mobBase.xp = Math.floor(mobBase.xp * (isEpico ? 4 : 2));
+                    mobBase.ouro = Math.floor(mobBase.ouro * (isEpico ? 4 : 2));
+                    mobBase.uid = Date.now();
+
+                    setMonstros([mobBase]);
+
+                    // Pequena cura entre rounds (opcional, para não ser impossível)
+                    setJogador(p => ({ ...p, hp: Math.min(p.maxHp, p.hp + Math.floor(p.maxHp * 0.2)) }));
+                    addLog("Recuperou um pouco de vida no intervalo...", 'cura');
+                }
+            };
+
+            // Efeito inicial para verificar migração (se necessário) ou só log
+            React.useEffect(() => {
+                // Verifica se tem saves antigos e migra se quiser, mas por simplicidade vamos manter v2
+            }, []);
+
+            if (view === 'menu') {
+                return (
+                    <>
+                        <MenuPrincipal
+                            onNovo={() => setView('criacao')}
+                            onContinuar={continuarJogo}
+                            onCarregar={abrirMenuCarregar}
+                            temSave={getSaves().length > 0}
+                        />
+                        {/* Renderiza o modal de carregar se estiver ativo (mesmo no menu) */}
+                        {modal === 'carregar_menu' && (
+                            <div className="absolute inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center p-8 z-50">
+                                <div className="bg-zinc-900 border border-amber-500/30 p-6 rounded-2xl w-full max-w-2xl h-full overflow-y-auto relative animate-slide-up">
+                                    <button onClick={() => setModal(null)} className="absolute top-4 right-4 text-zinc-500 hover:text-white text-xl">✕</button>
+                                    <h2 className="text-3xl font-fantasy text-amber-500 mb-6 text-center">Carregar Jogo</h2>
+
+                                    <div className="space-y-4">
+                                        {getSaves().length === 0 ? (
+                                            <p className="text-center text-zinc-500 italic">Nenhum jogo salvo encontrado.</p>
+                                        ) : (
+                                            getSaves().map(save => (
+                                                <div key={save.id} className="bg-zinc-800 p-4 rounded-xl border border-zinc-700 hover:border-amber-500 cursor-pointer transition-all flex justify-between items-center group">
+                                                    <div className="flex-1" onClick={() => carregarSaveEspecifico(save)}>
+                                                        <h3 className="font-bold text-lg text-zinc-200 group-hover:text-amber-400">{save.nome}</h3>
+                                                        <p className="text-xs text-zinc-500">{new Date(save.data).toLocaleString()}</p>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <button onClick={(e) => { e.stopPropagation(); deletarSave(save.id); }} className="p-2 text-zinc-600 hover:text-red-500 transition-colors" title="Deletar Save">🗑️</button>
+                                                        <div className="text-2xl opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => carregarSaveEspecifico(save)}>▶️</div>
+                                                    </div>
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </>
+                );
+            }
+
+            // Modal Especial para Carregar no Menu (Renderizado Condicionalmente se view for menu? Não, o modal é global do App, mas o App renderiza MenuPrincipal OU Jogo.
+            // Precisamos que o modal de carregar funcione TANTO no menu quanto no jogo.
+            // O MenuPrincipal substitui tudo, então se o modal for parte do App, ele deve estar fora do return condicional do Menu?
+            // CORREÇÃO: O MenuPrincipal é uma view. Se o modal for estado do App, ele deve ser renderizado por cima.
+            // Porem, se view === 'menu', retornamos direto o componente.
+            // Vamos injetar o modal de carregar DENTRO do MenuPrincipal? Ou mudar a estrutura de retorno.
+
+            // MELHOR: Renderizar o modal independente da view, SE ele estiver ativo.
+            // Mas o MenuPrincipal está retornando FULL SCREEN.
+            // VOU ALTERAR A ESTRUTURA DO RETURN FINAL.
+
+            if (view === 'criacao') return <CriacaoScreen onCriar={criarPersonagem} />;
+
+            const localAtual = LOCAIS_FIXOS.find(l => l.nome === jogador.local);
+            const ehCidade = localAtual && (localAtual.tipo === 'Cidade' || localAtual.tipo === 'Vila');
+
+            return (
+                <div className="h-[100dvh] w-full flex flex-col p-2 md:p-4 gap-2 md:gap-4 bg-slate-900 text-zinc-100">
+                    <div className="flex flex-col md:flex-row gap-4 h-full overflow-hidden">
+                        {/* Sidebar */}
+                        <div className="w-full md:w-64 h-auto md:h-full flex-shrink-0 order-2 md:order-1 max-h-[10vh] md:max-h-full overflow-y-auto glass-card rounded-2xl p-4 flex flex-col gap-4">
+                            <div className="text-center">
+                                <div className="text-4xl mb-2">{CLASSES[jogador.classe].icon}</div>
+                                <h2 className="text-xl font-bold text-amber-500">{jogador.nome}</h2>
+                                <p className="text-xs uppercase text-zinc-400">Nível {jogador.nivel} {jogador.classe}</p>
+                                <div className="text-[10px] mt-1 text-purple-400 font-bold">Guilda Rank {jogador.rankGuilda}</div>
+                            </div>
+
+                            <div className="space-y-2 text-sm">
+                                <Barra label="PV" atual={jogador.hp} max={jogador.maxHp} cor="bg-red-600" />
+                                <Barra label="PM" atual={jogador.mana} max={jogador.maxMana} cor="bg-blue-600" />
+                                <Barra label="XP" atual={jogador.xp} max={jogador.proximoXp} cor="bg-purple-600" />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2 text-center text-xs">
+                                <Stat icone="⚔️" valor={atributos.forca} label="FOR" />
+                                <Stat icone="🛡️" valor={atributos.armadura} label="ARM" />
+                                <Stat icone="⚡" valor={atributos.habilidade} label="HAB" />
+                                <Stat icone="🔥" valor={atributos.poderDeFogo} label="PDF" />
+                            </div>
+
+                            {jogador.missaoAtiva && (
+                                <div className="p-2 bg-blue-900/30 border border-blue-500/30 rounded text-xs">
+                                    <h4 className="font-bold text-blue-300">Missão Ativa:</h4>
+                                    <p>{jogador.missaoAtiva.titulo}</p>
+                                    <p className="text-right">{jogador.missaoAtiva.atual}/{jogador.missaoAtiva.req}</p>
+                                </div>
+                            )}
+
+                            <button onClick={() => setModal('inventario')} className="mt-auto w-full py-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-600 rounded-lg font-bold flex items-center justify-center gap-2 hover:border-amber-500 transition-all">
+                                🎒 MOCHILA
+                            </button>
+                            <button onClick={() => setModal('sistema')} className="w-full py-2 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 rounded-lg font-bold flex items-center justify-center gap-2 hover:border-zinc-500 transition-all text-xs text-zinc-400">
+                                ⚙️ OPÇÕES
+                            </button>
+                            <div className="text-center p-2 bg-amber-900/20 rounded border border-amber-500/20 text-amber-400 font-bold">
+                                💰 {jogador.ouro}
+                            </div>
+                        </div>
+
+                        {/* Main Area */}
+                        <div className="flex-1 flex flex-col gap-2 md:gap-4 relative order-1 md:order-2 overflow-hidden min-h-0">
+                            {/* Header Loc */}
+                            <div className="glass-card p-4 rounded-xl flex flex-col md:flex-row justify-between items-center gap-4">
+                                <div>
+                                    <h1 className="text-2xl font-fantasy text-amber-100">{jogador.local}</h1>
+                                    <p className="text-xs text-zinc-400">{localAtual?.descricao}</p>
+                                </div>
+                                <div className="flex gap-2 flex-wrap justify-center md:justify-end">
+                                    {ehCidade && (
+                                        <>
+                                            <BtnCidade icone="🛒" label="Loja" onClick={() => setModal('loja')} />
+                                            <BtnCidade icone="📜" label="Guilda" onClick={abrirGuilda} />
+                                            <BtnCidade icone="🎓" label="Academia" onClick={() => setModal('academia')} />
+                                            <BtnCidade icone="🍺" label="Taverna" onClick={abrirTaverna} />
+
+                                            {/* BOTÃO DO CAMPEONATO */}
+                                            {campeonatoDisponivel ? (
+                                                <button onClick={() => setModal('campeonato')} className="flex items-center gap-2 bg-gradient-to-r from-yellow-700 to-yellow-500 hover:from-yellow-600 hover:to-yellow-400 px-3 py-2 rounded-lg border-2 border-yellow-300 shadow-[0_0_15px_rgba(234,179,8,0.5)] animate-pulse transition-all text-sm font-bold text-black flex-1 md:flex-none justify-center">
+                                                    <span className="text-lg">🏆</span> <span className="inline">CAMP.</span>
+                                                </button>
+                                            ) : (
+                                                <button disabled className="flex items-center gap-2 bg-zinc-900 px-3 py-2 rounded-lg border border-zinc-800 text-sm font-bold text-zinc-600 opacity-50 cursor-not-allowed flex-1 md:flex-none justify-center" title={`Próximo em: ${Math.floor(tempoAteCampeonato / 60)}m ${tempoAteCampeonato % 60}s`}>
+                                                    <span className="text-lg">⏳</span> <span className="inline">{Math.floor(tempoAteCampeonato / 60)}:{String(tempoAteCampeonato % 60).padStart(2, '0')}</span>
+                                                </button>
+                                            )}
+                                        </>
+                                    )}
+                                    <BtnCidade icone="🗺️" label="Viajar" onClick={() => setModal('mapa')} />
+                                </div>
+                            </div>
+
+                            {/* Game Area */}
+                            <div className="flex-1 glass-card rounded-xl overflow-y-auto relative bg-gradient-to-b from-slate-900 to-black flex flex-col scroll-hide min-h-0">
+                                {monstros.length > 0 ? (
+                                    <div className="flex-1 flex flex-col p-4 relative">
+
+                                        {campeonatoAtivo && (
+                                            <div className="absolute top-2 left-1/2 transform -translate-x-1/2 bg-yellow-900/90 text-yellow-100 px-6 py-1 rounded-full border border-yellow-500 text-sm font-bold z-30 shadow-[0_0_15px_rgba(234,179,8,0.5)] flex items-center gap-2 animate-pulse">
+                                                <span>🏆</span> ROUND {rodadaCampeonato}/5
+                                            </div>
+                                        )}
+
+                                        {/* ÁREA DO MONSTRO (TOPO DIREITA) */}
+                                        {/* ÁREA DOS MONSTROS (TOPO) */}
+                                        <div className="flex justify-center gap-4 mb-2 animate-slide flex-wrap p-4 flex-shrink-0">
+                                            {monstros.map((monstro, idx) => (
+                                                <div key={monstro.uid || idx} className="relative group flex flex-col items-center">
+
+                                                    {/* Visual do Monstro */}
+                                                    <div className="text-6xl filter drop-shadow-[0_5px_5px_rgba(0,0,0,0.5)] transform hover:scale-105 transition-transform cursor-crosshair relative z-10 animate-float mb-2">
+                                                        {getMonsterIcon(monstro.nome)}
+                                                    </div>
+
+                                                    <div className="w-16 h-2 bg-black/40 blur-lg rounded-[100%] absolute top-[50px]"></div>
+
+                                                    {/* Info Card (Agora embaixo para não tapar) */}
+                                                    <div className="bg-zinc-900/90 border border-red-900/50 p-2 rounded-lg min-w-[100px] shadow-xl backdrop-blur-sm z-20 text-center">
+                                                        <div className="font-bold text-[10px] text-zinc-100 leading-tight mb-1">{monstro.nome}</div>
+                                                        <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden border border-zinc-700 w-full">
+                                                            <div className="h-full bg-red-600 transition-all duration-300" style={{ width: `${(monstro.hp / monstro.maxHp) * 100}%` }}></div>
+                                                        </div>
+                                                        <div className="text-[8px] text-zinc-500 mt-0.5">{monstro.hp}/{monstro.maxHp}</div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        {/* ESPAÇO VAZIO (CAMPO DE BATALHA) */}
+                                        <div className="flex-1"></div>
+
+                                        {/* ÁREA DO JOGADOR (BAIXO ESQUERDA) */}
+                                        <div className="flex justify-between items-end animate-slide-up">
+                                            <div className="relative">
+                                                {/* Visual do Jogador */}
+                                                <div className="text-5xl relative z-10 transform scale-x-[-1] ml-2">
+                                                    {jogador.classe === 'Guerreiro' ? '🛡️' : jogador.classe === 'Mago' ? '🧙‍♂️' : '🗡️'}
+                                                </div>
+                                                <div className="w-full h-3 bg-black/40 blur-md absolute bottom-1 rounded-[100%] ml-2"></div>
+                                            </div>
+
+                                            {/* Status Card e Controles */}
+                                            <div className="flex-1 ml-4 max-w-[200px]">
+                                                <div className="bg-zinc-900/90 border border-amber-500/30 p-2 rounded-lg shadow-2xl backdrop-blur-sm mb-2">
+                                                    <div className="flex justify-between items-baseline mb-1">
+                                                        <span className="font-bold text-sm text-amber-500 truncate">{jogador.nome}</span>
+                                                        <span className="text-[9px] text-zinc-400">Nvl {jogador.nivel}</span>
+                                                    </div>
+
+                                                    {/* Barra PV */}
+                                                    <div className="flex items-center gap-1 mb-0.5">
+                                                        <span className="text-[8px] font-bold w-3">PV</span>
+                                                        <div className="flex-1 h-2 bg-zinc-800 rounded-full border border-zinc-700 overflow-hidden relative">
+                                                            <div className="h-full bg-gradient-to-r from-green-600 to-green-400 absolute transition-all duration-500" style={{ width: `${(jogador.hp / jogador.maxHp) * 100}%` }}></div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Barra PM */}
+                                                    <div className="flex items-center gap-1 mb-2">
+                                                        <span className="text-[8px] font-bold w-3 text-blue-300">PM</span>
+                                                        <div className="flex-1 h-1.5 bg-zinc-800 rounded-full border border-zinc-700 overflow-hidden relative">
+                                                            <div className="h-full bg-blue-600 absolute transition-all duration-500" style={{ width: `${(jogador.mana / jogador.maxMana) * 100}%` }}></div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Atributos Manuais */}
+                                                    <div className="mb-2 text-[8px] grid grid-cols-2 gap-x-2 gap-y-0.5 mt-2 bg-black/20 p-1 rounded">
+                                                        {/* Força */}
+                                                        <div className="flex justify-between items-center text-zinc-400">
+                                                            <span>FOR: {atributos.forca}</span>
+                                                            {jogador.pontosAtributo > 0 && <button onClick={() => evoluirAtributo('forca')} className="text-amber-400 hover:text-white font-bold bg-zinc-800 px-1.5 rounded transition-colors border border-amber-900/50">+</button>}
+                                                        </div>
+                                                        {/* Poder de Fogo */}
+                                                        <div className="flex justify-between items-center text-zinc-400">
+                                                            <span className={jogador.classe === 'Mago' ? 'text-blue-300 font-bold' : ''}>MAG: {atributos.poderDeFogo}</span>
+                                                            {jogador.pontosAtributo > 0 && <button onClick={() => evoluirAtributo('poderDeFogo')} className="text-amber-400 hover:text-white font-bold bg-zinc-800 px-1.5 rounded transition-colors border border-amber-900/50">+</button>}
+                                                        </div>
+                                                        {/* Habilidade */}
+                                                        <div className="flex justify-between items-center text-zinc-400">
+                                                            <span>HAB: {atributos.habilidade}</span>
+                                                            {jogador.pontosAtributo > 0 && <button onClick={() => evoluirAtributo('habilidade')} className="text-amber-400 hover:text-white font-bold bg-zinc-800 px-1.5 rounded transition-colors border border-amber-900/50">+</button>}
+                                                        </div>
+                                                        {/* Resistência */}
+                                                        <div className="flex justify-between items-center text-zinc-400">
+                                                            <span>RES: {atributos.resistencia}</span>
+                                                            {jogador.pontosAtributo > 0 && <button onClick={() => evoluirAtributo('resistencia')} className="text-amber-400 hover:text-white font-bold bg-zinc-800 px-1.5 rounded transition-colors border border-amber-900/50">+</button>}
+                                                        </div>
+                                                    </div>
+
+                                                    {jogador.pontosAtributo > 0 && (
+                                                        <div className="text-[9px] text-center text-yellow-300 font-bold animate-pulse mb-1 border border-yellow-500/30 bg-yellow-900/20 rounded py-0.5">
+                                                            ✨ {jogador.pontosAtributo} PONTOS DISPONÍVEIS ✨
+                                                        </div>
+                                                    )}
+
+                                                    <div className="h-px bg-zinc-700 my-1.5"></div>
+
+                                                    {/* Botoes de Ação */}
+                                                    <div className="grid grid-cols-2 gap-1">
+                                                        <button onClick={atacar} className="col-span-1 bg-red-600 hover:bg-red-500 text-white py-1.5 rounded font-bold text-xs shadow hover:shadow-red-500/20 transition-all active:scale-95 flex items-center justify-center gap-1 border-b border-red-800">
+                                                            <span>⚔️</span> ATACAR
+                                                        </button>
+                                                        <button onClick={fugir} className="col-span-1 bg-zinc-600 hover:bg-zinc-500 text-white py-1.5 rounded font-bold text-xs shadow hover:shadow-zinc-500/20 transition-all active:scale-95 flex items-center justify-center gap-1 border-b border-zinc-800">
+                                                            <span>🏃</span> FUGIR
+                                                        </button>
+                                                        {jogador.magias.map(magia => (
+                                                            <button
+                                                                key={magia.id}
+                                                                onClick={() => conjurar(magia)}
+                                                                className="col-span-1 bg-cyan-700 hover:bg-cyan-600 text-white py-1.5 rounded font-bold text-[10px] flex flex-col items-center justify-center border-b border-cyan-800 transition-all active:scale-95 hover:shadow-cyan-500/20"
+                                                                title={`${magia.desc} (Dano: ${Math.floor(magia.poder * (atributos.poderDeFogo / 2 + 1))})`}
+                                                            >
+                                                                <span>{magia.tipo === 'Cura' ? '💖' : '🔥'} {magia.nome}</span>
+                                                                <span className="text-[8px] opacity-80">{magia.mana} PM</span>
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                    </div>
+                                ) : (
+                                    <div className="flex-1 flex flex-col items-center justify-center relative">
+                                        {/* Background Decorativo */}
+                                        <div className="absolute inset-0 opacity-20 pointer-events-none flex items-center justify-center text-9xl filter blur-sm">
+                                            {ehCidade ? '🏰' : '🌲'}
+                                        </div>
+
+                                        <div className="text-center space-y-4 relative z-10">
+                                            {!ehCidade ? (
+                                                <button onClick={explorar} className="p-2 md:p-8 bg-zinc-800 hover:bg-zinc-700 rounded-full w-24 h-24 md:w-48 md:h-48 flex flex-col items-center justify-center gap-1 md:gap-2 border-4 border-zinc-600 hover:border-amber-500 transition-all hover:scale-105 group shadow-[0_0_30px_rgba(0,0,0,0.5)] flex-shrink-0">
+                                                    <span className="text-3xl md:text-5xl group-hover:rotate-12 transition-transform">🧭</span>
+                                                    <span className="font-bold text-[10px] md:text-xl tracking-widest text-zinc-300 group-hover:text-amber-400">EXPLORAR</span>
+                                                </button>
+                                            ) : (
+                                                <div className="glass-card p-6 rounded-2xl max-w-md border border-amber-500/20 bg-black/60 flex flex-col items-center">
+                                                    <h3 className="text-xl font-fantasy text-amber-500 mb-2">Zona Segura</h3>
+                                                    <p className="text-zinc-400 italic text-sm mb-4 text-center">Você está descansando na cidade. Visite as lojas ou a guilda.</p>
+
+                                                    {/* Botão para caçar na cidade (Ratos, Ladrões) */}
+                                                    <button onClick={explorar} className="py-2 px-6 bg-zinc-800 hover:bg-red-900/40 border border-zinc-600 hover:border-red-500 rounded-lg flex items-center gap-2 group transition-all">
+                                                        <span className="text-xl group-hover:scale-110 transition-transform">🗡️</span>
+                                                        <span className="font-bold text-zinc-300 group-hover:text-red-400">Explorar Arredores</span>
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Logs */}
+                            <div className="h-24 md:h-40 glass-card rounded-xl p-3 overflow-y-auto font-mono text-xs space-y-1 flex-shrink-0" ref={logRef}>
+                                {logs.map(log => (
+                                    <div key={log.id} className={`${log.tipo === 'perigo' ? 'text-red-300' : log.tipo === 'loot' ? 'text-amber-300' : log.tipo === 'sucesso' ? 'text-green-300' : 'text-zinc-400'}`}>
+                                        {'> '}{log.msg}
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* MODAIS */}
+                            {modal && (
+                                <div className="absolute inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 md:p-8 z-50">
+                                    <div className={`bg-zinc-900 border border-amber-500/30 rounded-2xl w-full ${modal === 'mapa' ? 'max-w-6xl' : 'max-w-2xl'} max-h-[90dvh] flex flex-col relative shadow-2xl`}>
+                                        <button onClick={() => setModal(null)} className="absolute top-3 right-3 text-zinc-400 hover:text-white z-50 bg-black/50 hover:bg-black/80 w-8 h-8 rounded-full flex items-center justify-center transition-colors">✕</button>
+
+                                        {/* Container de Conteúdo com Scroll */}
+                                        <div className="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar relative">
+
+                                            {modal === 'campeonato' && (
+                                                <div className="text-center">
+                                                    <div className="text-6xl mb-4">🏆</div>
+                                                    <h2 className="text-3xl font-fantasy text-amber-500 mb-2">Grande Campeonato de {localAtual.nome}</h2>
+                                                    <p className="text-zinc-400 mb-6 max-w-lg mx-auto">
+                                                        Guerreiros de todo o reino se reúnem para provar seu valor.
+                                                        Sobreviva a <strong>5 rodadas consecutivas</strong> contra gladiadores de elite para ganhar fama e fortuna!
+                                                    </p>
+
+                                                    <div className="bg-black/30 p-4 rounded-xl border border-amber-900/30 mb-8 max-w-md mx-auto">
+                                                        <h3 className="text-amber-200 font-bold mb-2">Prêmio do Campeão</h3>
+                                                        <div className="flex justify-center gap-8 text-sm">
+                                                            <div className="flex flex-col items-center">
+                                                                <span className="text-2xl">💰</span>
+                                                                <span className="text-yellow-400 font-bold">{500 * jogador.nivel} Ouro</span>
+                                                            </div>
+                                                            <div className="flex flex-col items-center">
+                                                                <span className="text-2xl">✨</span>
+                                                                <span className="text-purple-400 font-bold">{200 * jogador.nivel} XP</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <button onClick={iniciarCampeonato} className="px-8 py-3 bg-gradient-to-r from-amber-700 to-amber-500 hover:from-amber-600 hover:to-amber-400 text-black font-bold rounded-xl text-lg shadow-[0_0_20px_rgba(245,158,11,0.4)] transition-transform hover:scale-105 border-2 border-amber-300">
+                                                        ENTRAR NA ARENA
+                                                    </button>
+                                                    <div className="mt-4">
+                                                        <button onClick={() => setModal(null)} className="text-zinc-500 hover:text-white underline text-sm">Talvez mais tarde...</button>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {modal === 'loja' && (
+                                                <div>
+                                                    <h2 className="text-2xl font-fantasy text-amber-500 mb-6 flex items-center gap-2">🛒 Mercado Local <span className="text-sm text-zinc-400 font-sans ml-auto">Seu Ouro: {jogador.ouro}</span></h2>
+                                                    <div className="grid gap-3">
+                                                        {ITENS_LOJA.map(item => (
+                                                            <div key={item.id} className="flex justify-between items-center p-3 bg-white/5 rounded-lg border border-white/5 hover:border-amber-500/50">
+                                                                <div>
+                                                                    <div className="font-bold text-amber-100">{item.nome}</div>
+                                                                    <div className="text-xs text-zinc-500">{item.desc}</div>
+                                                                </div>
+                                                                <button onClick={() => comprarItem(item)} className="bg-green-700 hover:bg-green-600 px-4 py-2 rounded font-bold text-sm">Comprar {item.preco}💰</button>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {modal === 'guilda' && (
+                                                <div>
+                                                    <h2 className="text-2xl font-fantasy text-amber-500 mb-6">📜 Guilda de Aventureiros (Rank {jogador.rankGuilda})</h2>
+                                                    {jogador.missaoAtiva ? (
+                                                        <div className="text-center p-8 bg-blue-900/20 rounded-xl border border-blue-500/30">
+                                                            <h3 className="text-xl mb-2">Missão em Progresso</h3>
+                                                            <p className="text-blue-300 font-bold text-lg">{jogador.missaoAtiva.titulo}</p>
+                                                            <p className="text-zinc-400 mb-4">{jogador.missaoAtiva.desc}</p>
+                                                            <p>Progresso: {jogador.missaoAtiva.atual}/{jogador.missaoAtiva.req}</p>
+
+                                                            {jogador.missaoAtiva.atual >= jogador.missaoAtiva.req ? (
+                                                                <button
+                                                                    onClick={() => {
+                                                                        if (jogador.missaoAtiva.tipo === 'evolucao') {
+                                                                            const novaClasse = EVOLUCOES[jogador.classe];
+                                                                            setJogador(p => ({
+                                                                                ...p,
+                                                                                classe: novaClasse,
+                                                                                classeEvoluida: true,
+                                                                                missaoAtiva: null,
+                                                                                ouro: p.ouro + 1000,
+                                                                                maxHp: p.maxHp + 50, // Bonus evolução
+                                                                                hp: p.maxHp + 50,
+                                                                                maxMana: p.maxMana + 20,
+                                                                                mana: p.maxMana + 20
+                                                                            }));
+                                                                            addLog(`VOCÊ EVOLUIU PARA ${novaClasse.toUpperCase()}!`, 'sucesso');
+                                                                            alert(`Parabéns! Você alcançou o nível supremo e se tornou um ${novaClasse}!`);
+                                                                        } else {
+                                                                            // Missão Normal
+                                                                            // Check Rank Up
+                                                                            const rankAtualIdx = RANKS_GUILDA.indexOf(jogador.rankGuilda);
+                                                                            const missoesNecessarias = REQUISITOS_RANK[rankAtualIdx] || 9999;
+                                                                            let novoRank = jogador.rankGuilda;
+                                                                            let msgRank = "";
+
+                                                                            if (jogador.missoesCompletas + 1 >= missoesNecessarias) {
+                                                                                if (rankAtualIdx < RANKS_GUILDA.length - 1) {
+                                                                                    novoRank = RANKS_GUILDA[rankAtualIdx + 1];
+                                                                                    msgRank = ` SUBIU DE RANK: ${novoRank}!`;
+                                                                                    // Resetar missões disponíveis para gerar novas do rank novo
+                                                                                    setMissoesDisponiveis([]);
+                                                                                }
+                                                                            }
+
+                                                                            setJogador(p => ({
+                                                                                ...p,
+                                                                                ouro: p.ouro + p.missaoAtiva.ouro,
+                                                                                xp: p.xp + p.missaoAtiva.xp,
+                                                                                missoesCompletas: p.missoesCompletas + 1,
+                                                                                rankGuilda: novoRank,
+                                                                                missaoAtiva: null
+                                                                            }));
+                                                                            addLog(`Missão entregue! Recebeu ${jogador.missaoAtiva.ouro} ouro e ${jogador.missaoAtiva.xp} XP.${msgRank}`, 'sucesso');
+                                                                        }
+                                                                    }}
+                                                                    className="mt-4 bg-green-600 hover:bg-green-500 text-white font-bold py-2 px-6 rounded-lg animate-pulse w-full"
+                                                                >
+                                                                    COMPLETAR MISSÃO
+                                                                </button>
+                                                            ) : (
+                                                                <button
+                                                                    onClick={cancelarMissao}
+                                                                    className="mt-4 bg-red-900/50 hover:bg-red-700 text-red-200 border border-red-800 font-bold py-2 px-6 rounded-lg w-full text-xs"
+                                                                >
+                                                                    CANCELAR MISSÃO
+                                                                </button>
+                                                            )}
+
+                                                        </div>
+                                                    ) : (
+                                                        <div className="grid gap-4">
+                                                            {/* Progress Bar do Rank */}
+                                                            {RANKS_GUILDA.indexOf(jogador.rankGuilda) < RANKS_GUILDA.length - 1 && (
+                                                                <div className="bg-black/30 p-3 rounded-lg border border-amber-900/30">
+                                                                    <div className="flex justify-between text-xs text-zinc-400 mb-1">
+                                                                        <span>Progresso para Rank {RANKS_GUILDA[RANKS_GUILDA.indexOf(jogador.rankGuilda) + 1]}</span>
+                                                                        <span>{jogador.missoesCompletas} / {REQUISITOS_RANK[RANKS_GUILDA.indexOf(jogador.rankGuilda)]}</span>
+                                                                    </div>
+                                                                    <div className="h-2 bg-black rounded-full overflow-hidden">
+                                                                        <div className="h-full bg-amber-600" style={{ width: `${Math.min(100, (jogador.missoesCompletas / REQUISITOS_RANK[RANKS_GUILDA.indexOf(jogador.rankGuilda)]) * 100)}%` }}></div>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+
+                                                            {/* Lista de Missões */}
+                                                            {missoesDiponiveis.map(m => (
+                                                                <div key={m.id} className="p-4 bg-white/5 rounded-xl border-l-4 border-amber-500">
+                                                                    <h4 className="font-bold text-lg">{m.titulo} <span className="text-xs bg-amber-900 px-2 py-0.5 rounded ml-2">Rank {m.rank}</span></h4>
+                                                                    <p className="text-zinc-400 text-sm mb-3">{m.desc}</p>
+                                                                    <div className="flex justify-between items-center">
+                                                                        <div className="text-xs text-amber-300">Recompensa: {m.ouro} ouro, {m.xp} XP</div>
+                                                                        <button onClick={() => aceitarMissao(m)} className="bg-amber-600 hover:bg-amber-500 text-black font-bold px-4 py-2 rounded text-sm">Aceitar Contrato</button>
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+
+                                            {modal === 'academia' && (
+                                                <div>
+                                                    <h2 className="text-2xl font-fantasy text-amber-500 mb-6">🎓 Academia Arcana</h2>
+                                                    <div className="grid gap-3">
+                                                        {MAGIAS_DISPONIVEIS.map(magia => (
+                                                            <div key={magia.id} className="flex justify-between items-center p-3 bg-white/5 rounded-lg border border-white/5">
+                                                                <div>
+                                                                    <div className="font-bold text-blue-200">{magia.nome}</div>
+                                                                    <div className="text-xs text-zinc-500">{magia.desc} ({magia.tipo})</div>
+                                                                </div>
+                                                                <button onClick={() => aprenderMagia(magia)} className="bg-blue-700 hover:bg-blue-600 px-4 py-2 rounded font-bold text-sm">Aprender {magia.custo}💰</button>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+
+
+
+                                            {modal === 'taverna' && (
+                                                <div>
+                                                    <h2 className="text-2xl font-fantasy text-amber-500 mb-6">🍺 Taverna do Javali</h2>
+                                                    <div className="bg-amber-900/20 p-6 rounded-xl border border-amber-500/30 text-center mb-6">
+                                                        <p className="text-xl mb-4 italic">"Bem-vindo, viajante! Sente-se, a lareira está quente."</p>
+                                                        <div className="grid grid-cols-2 gap-4">
+                                                            <button onClick={() => acaoTaverna('bebida')} className="p-4 bg-amber-800 hover:bg-amber-700 rounded-xl border border-amber-600 transition-all hover:scale-105">
+                                                                <div className="text-4xl mb-2">🍺</div>
+                                                                <div className="font-bold">Beber Uma</div>
+                                                                <div className="text-sm text-yellow-300">Custo: {Math.ceil(jogador.nivel * 2)}💰</div>
+                                                                <div className="text-xs text-zinc-400 mt-1">Recupera um pouco de mana</div>
+                                                            </button>
+                                                            <button onClick={() => acaoTaverna('descanso')} className="p-4 bg-blue-900 hover:bg-blue-800 rounded-xl border border-blue-600 transition-all hover:scale-105">
+                                                                <div className="text-4xl mb-2">🛏️</div>
+                                                                <div className="font-bold">Pernoitar</div>
+                                                                <div className="text-sm text-yellow-300">Custo: {Math.ceil(jogador.nivel * 15)}💰</div>
+                                                                <div className="text-xs text-zinc-400 mt-1">Recupera TODA Vida e Mana</div>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {modal === 'mapa' && (
+                                                <div className="h-full flex flex-col justify-center overflow-y-auto">
+                                                    <h2 className="text-2xl font-fantasy text-amber-500 mb-4 flex-shrink-0 text-center">🗺️ Mapa do Reino</h2>
+
+                                                    {/* Map Container - Responsive */}
+                                                    <div className="relative w-full max-w-4xl rounded-xl overflow-hidden border-2 border-amber-900/50 bg-stone-900 group shadow-2xl mx-auto flex-shrink-0">
+
+                                                        {/* Map Image - Tag img for correct aspect ratio */}
+                                                        <img
+                                                            src="./mapa.png?v=5"
+                                                            alt="Mapa do Mundo"
+                                                            className="w-full h-auto block opacity-50 grayscale group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-1000"
+                                                        />
+
+                                                        {/* Locations Pins - Absolute positioned over image */}
+                                                        <div className="absolute inset-0">
+                                                            {LOCAIS_FIXOS.map(local => {
+                                                                const isCurrent = local.nome === jogador.local;
+                                                                return (
+                                                                    <button
+                                                                        key={local.nome}
+                                                                        onClick={() => viajar(local)}
+                                                                        disabled={isCurrent}
+                                                                        style={{ left: `${local.x}%`, top: `${local.y}%` }}
+                                                                        className={`absolute transform -translate-x-1/2 -translate-y-1/2 transition-all duration-300 z-10 w-8 h-8 flex items-center justify-center rounded-full border-2 shadow-[0_0_15px_rgba(0,0,0,0.8)] group/pin
+                                                                        ${isCurrent
+                                                                                ? 'bg-amber-600 border-amber-300 scale-110 cursor-default animate-pulse'
+                                                                                : 'bg-zinc-800 border-zinc-600 hover:bg-amber-700 hover:border-amber-400 hover:scale-125'}`}
+                                                                    >
+                                                                        <span className="text-sm">
+                                                                            {local.tipo === 'Cidade' ? '🏰' :
+                                                                                local.tipo === 'Vila' ? '🏠' :
+                                                                                    local.nome === 'Floresta Sombria' ? '☠️' :
+                                                                                        local.tipo === 'Floresta' ? '🌲' :
+                                                                                            local.tipo === 'Montanha' ? '🏔️' : '📍'}
+                                                                        </span>
+
+                                                                        {/* Tooltip */}
+                                                                        <div className="absolute bottom-full mb-2 bg-black/90 text-amber-100 text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover/pin:opacity-100 pointer-events-none border border-amber-500/30 transition-opacity z-20">
+                                                                            <div className="font-bold">{local.nome}</div>
+                                                                            <div className="text-zinc-400 text-[10px]">{local.tipo}</div>
+                                                                            <div className="text-yellow-400 text-[10px]">Custo: {20 + (jogador.nivel * 5)} 💰</div>
+                                                                        </div>
+                                                                    </button>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </div>
+                                                    <div className="mt-4 text-center text-sm text-zinc-400 flex-shrink-0">
+                                                        Clique em um local para viajar • O local atual está pulsando em laranja
+                                                    </div>
+                                                </div>
+                                            )}
+                                            {modal === 'inventario' && (
+                                                <div>
+                                                    <h2 className="text-2xl font-fantasy text-amber-500 mb-6">🎒 Inventário & Equipamentos</h2>
+
+                                                    {/* Equipados */}
+                                                    <div className="mb-6 p-4 bg-zinc-800/50 rounded-xl border border-zinc-700">
+                                                        <h3 className="text-zinc-400 text-sm uppercase font-bold mb-3">Equipado</h3>
+                                                        <div className="grid grid-cols-3 gap-2">
+                                                            {['arma', 'armadura', 'acessorio'].map(slot => (
+                                                                <div key={slot} className="relative group">
+                                                                    <div className={`p-3 rounded-lg border flex flex-col items-center justify-center h-24 text-center ${jogador.equipamento[slot] ? 'bg-amber-900/20 border-amber-500/50' : 'bg-black/20 border-white/5'}`}>
+                                                                        {jogador.equipamento[slot] ? (
+                                                                            <>
+                                                                                <div className="font-bold text-amber-100 text-xs sm:text-sm">{jogador.equipamento[slot].nome}</div>
+                                                                                <button onClick={() => desequipar(slot)} className="absolute -top-2 -right-2 bg-red-600 text-white w-6 h-6 rounded-full text-xs shadow-lg hover:scale-110 opacity-0 group-hover:opacity-100 transition-all">✕</button>
+                                                                            </>
+                                                                        ) : (
+                                                                            <div className="text-zinc-600 text-xs uppercase">{slot}</div>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Mochila */}
+                                                    <div>
+                                                        <h3 className="text-zinc-400 text-sm uppercase font-bold mb-3">Na Mochila ({jogador.inventario.length} itens)</h3>
+                                                        {jogador.inventario.length === 0 ? (
+                                                            <div className="text-zinc-500 italic text-center py-8">Sua mochila está vazia.</div>
+                                                        ) : (
+                                                            <div className="grid sm:grid-cols-2 gap-2">
+                                                                {jogador.inventario.map(item => (
+                                                                    <div key={item.uid} className="flex justify-between items-center p-2 bg-white/5 rounded border border-white/5 hover:border-amber-500/30 group">
+                                                                        <div>
+                                                                            <div className="font-bold text-zinc-200">{item.nome}</div>
+                                                                            <div className="text-[10px] text-zinc-500">{item.tipo}</div>
+                                                                        </div>
+                                                                        <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                            {item.tipo === 'Consumivel' ? (
+                                                                                <button onClick={() => usarItem(item)} className="px-3 py-1 bg-green-700 hover:bg-green-600 rounded text-xs font-bold">Usar</button>
+                                                                            ) : (
+                                                                                <button onClick={() => equiparItem(item)} className="px-3 py-1 bg-blue-700 hover:bg-blue-600 rounded text-xs font-bold">Equipar</button>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {modal === 'sistema' && (
+                                                <div>
+                                                    <h2 className="text-2xl font-fantasy text-zinc-400 mb-6 flex items-center gap-2">⚙️ Sistema</h2>
+                                                    <div className="grid gap-4">
+                                                        <button onClick={salvarJogo} className="p-4 bg-green-900/40 hover:bg-green-800/60 border border-green-700/50 rounded-xl flex items-center gap-4 transition-all">
+                                                            <span className="text-3xl">💾</span>
+                                                            <div className="text-left">
+                                                                <div className="font-bold text-green-200">Salvar Jogo</div>
+                                                                <div className="text-xs text-zinc-400">Guarda seu progresso atual no navegador.</div>
+                                                            </div>
+                                                        </button>
+
+                                                        <button onClick={carregarJogo} className="p-4 bg-blue-900/40 hover:bg-blue-800/60 border border-blue-700/50 rounded-xl flex items-center gap-4 transition-all">
+                                                            <span className="text-3xl">📂</span>
+                                                            <div className="text-left">
+                                                                <div className="font-bold text-blue-200">Carregar Jogo</div>
+                                                                <div className="text-xs text-zinc-400">Recupera o último save.</div>
+                                                            </div>
+                                                        </button>
+
+                                                        <button onClick={reiniciarJogo} className="p-4 bg-red-900/40 hover:bg-red-800/60 border border-red-700/50 rounded-xl flex items-center gap-4 transition-all mt-8">
+                                                            <span className="text-3xl">🚪</span>
+                                                            <div className="text-left">
+                                                                <div className="font-bold text-red-200">Sair do Jogo</div>
+                                                                <div className="text-xs text-zinc-400">Volta para o menu principal.</div>
+                                                            </div>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {modal === 'carregar_menu' && (
+                                                <div>
+                                                    <h2 className="text-2xl font-fantasy text-amber-500 mb-6">📂 Carregar Jogo</h2>
+                                                    {getSaves().length === 0 ? (
+                                                        <p className="text-zinc-500 italic">Nenhum save encontrado.</p>
+                                                    ) : (
+                                                        <div className="grid gap-2 max-h-[60vh] overflow-y-auto pr-2">
+                                                            {getSaves().map(save => (
+                                                                <button key={save.id} onClick={() => carregarSaveEspecifico(save)} className="p-4 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 text-left group transition-all">
+                                                                    <div className="font-bold text-amber-100 group-hover:text-amber-400">{save.nome}</div>
+                                                                    <div className="text-xs text-zinc-500 flex justify-between mt-1">
+                                                                        <span>{save.data}</span>
+                                                                        <span>ID: {save.id.toString().slice(-4)}</span>
+                                                                    </div>
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* MODAL DE MORTE (Overlay Global) */}
+                            {jogador.hp <= 0 && (
+                                <div className="absolute inset-0 bg-red-900/90 backdrop-blur-lg flex items-center justify-center p-8 z-[100] animate-pulse-slow">
+                                    <div className="text-center">
+                                        <div className="text-8xl mb-4">☠️</div>
+                                        <h2 className="text-4xl font-fantasy text-white mb-2">VOCÊ ESTÁ INCONSCIENTE!</h2>
+                                        <p className="text-red-200 mb-8 max-w-md mx-auto">
+                                            Seus ferimentos foram fatais. Você precisa ser resgatado e levado de volta à vila.
+                                        </p>
+
+                                        <button
+                                            onClick={respawn}
+                                            className="px-8 py-4 bg-white text-black font-bold rounded-xl text-xl hover:scale-105 transition-transform shadow-[0_0_50px_rgba(255,255,255,0.5)] border-4 border-red-500"
+                                        >
+                                            RENASCER
+                                            <div className="text-xs font-normal mt-1 text-zinc-500">
+                                                (Taxa de resgate: {Math.floor(jogador.ouro * 0.1)} Ouro)
+                                            </div>
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                        </div>
+                    </div>
+
+                    {/* Modal Isolado para o Menu Principal */}
+                    {view === 'menu' && modal === 'carregar_menu' && (
+                        <div className="absolute inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center p-8 z-50">
+                            <div className="bg-zinc-900 border border-amber-500/30 p-6 rounded-2xl w-full max-w-lg relative">
+                                <button onClick={() => setModal(null)} className="absolute top-4 right-4 text-zinc-500 hover:text-white text-xl">✕</button>
+                                <h2 className="text-2xl font-fantasy text-amber-500 mb-6">📂 Carregar Jogo</h2>
+                                <div className="grid gap-2 max-h-[60vh] overflow-y-auto pr-2">
+                                    {getSaves().length === 0 ? <p className="text-zinc-500">Vazio.</p> : getSaves().map(save => (
+                                        <button key={save.id} onClick={() => { carregarSaveEspecifico(save); }} className="p-4 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 text-left w-full">
+                                            <div className="font-bold text-amber-100">{save.nome}</div>
+                                            <div className="text-xs text-zinc-500">{save.data}</div>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const CriacaoScreen = ({ onCriar }) => {
+            const [nome, setNome] = React.useState("");
+            const [raca, setRaca] = React.useState("Humano");
+            const [classe, setClasse] = React.useState("Guerreiro");
+
+            return (
+                <div className="min-h-screen flex items-center justify-center bg-black p-4 bg-[url('https://images.unsplash.com/photo-1519074069444-1ba4fff66d16?q=80&w=2000')] bg-cover relative">
+                    <div className="absolute inset-0 bg-black/80"></div>
+                    <div className="relative glass-card p-8 rounded-2xl w-full max-w-md animate-slide border border-amber-500/30">
+                        <h1 className="text-3xl font-fantasy text-amber-500 text-center mb-6">Crônicas do Infinito</h1>
+                        <div className="space-y-4">
+                            <div><label className="block text-xs uppercase font-bold text-zinc-500 mb-1">Nome</label><input className="w-full bg-zinc-900 border border-zinc-700 p-3 rounded-lg text-white" value={nome} onChange={e => setNome(e.target.value)} /></div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div><label className="block text-xs uppercase font-bold text-zinc-500 mb-1">Raça</label><select className="w-full bg-zinc-900 border border-zinc-700 p-3 rounded-lg text-white" value={raca} onChange={e => setRaca(e.target.value)}>{Object.keys(RACAS).map(r => <option key={r} value={r}>{r}</option>)}</select></div>
+                                <div><label className="block text-xs uppercase font-bold text-zinc-500 mb-1">Classe</label><select className="w-full bg-zinc-900 border border-zinc-700 p-3 rounded-lg text-white" value={classe} onChange={e => setClasse(e.target.value)}>{Object.keys(EVOLUCOES).map(c => <option key={c} value={c}>{c}</option>)}</select></div>
+                            </div>
+                            <button onClick={() => onCriar({ nome, raca, classe })} disabled={!nome} className="w-full bg-amber-600 hover:bg-amber-500 text-black font-bold p-4 rounded-xl mt-4">JOGAR</button>
+                        </div>
+                    </div>
+                </div>
+            )
+        };
+
+        const Barra = ({ label, atual, max, cor }) => (<div><div className="flex justify-between text-[10px] uppercase font-bold text-zinc-500"><span>{label}</span><span>{Math.ceil(atual)}/{max}</span></div><div className="h-1.5 bg-black/40 rounded-full overflow-hidden"><div className={`h-full ${cor}`} style={{ width: `${Math.min(100, (atual / max) * 100)}%` }}></div></div></div>);
+        const Stat = ({ icone, valor, label }) => (<div className="bg-white/5 p-2 rounded-lg border border-white/5"><div className="text-lg">{icone}</div><div className="font-bold text-white">{valor}</div><div className="text-[9px] text-zinc-500">{label}</div></div>);
+        const BtnCidade = ({ icone, label, onClick }) => (<button onClick={onClick} className="flex items-center gap-2 bg-zinc-800 hover:bg-zinc-700 px-3 py-2 rounded-lg border border-white/10 hover:border-amber-500/50 transition-all text-sm font-bold"><span className="text-lg">{icone}</span> <span className="hidden md:inline">{label}</span></button>);
+
+        // Error Handler para capturar tela preta
+        window.onerror = function (message, source, lineno, colno, error) {
+            const div = document.createElement('div');
+            div.style = "color:red; background:black; padding:20px; z-index:9999; position:fixed; top:0; left:0; width:100%; border-bottom: 2px solid white; font-family: sans-serif;";
+            div.innerHTML = '<strong>ERRO CRÍTICO:</strong> ' + message + '<br><small>Linha: ' + lineno + '</small>';
+            document.body.appendChild(div);
+            console.error("Erro capturado:", message, error);
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>
