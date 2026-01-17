@@ -239,6 +239,15 @@
             const [rodadaCampeonato, setRodadaCampeonato] = React.useState(0);
             const [campeonatoAtivo, setCampeonatoAtivo] = React.useState(false);
 
+            // --- ESTADO DUNGEON ---
+            const [dungeonAtiva, setDungeonAtiva] = React.useState(null); // Objeto da Masmorra
+            const [salaDungeon, setSalaDungeon] = React.useState(0); // 1 a X
+
+            // --- ESTADO MUNDO DINÂMICO ---
+            const [cicloDia, setCicloDia] = React.useState('Manhã');
+            const [progressoDia, setProgressoDia] = React.useState(0);
+            const [eventoAleatorioCd, setEventoAleatorioCd] = React.useState(Date.now() + 60000); // 1 min inicial safe
+
             const logRef = React.useRef(null);
 
 
@@ -268,7 +277,7 @@
             }, [logs]);
 
             const addLog = (msg, tipo = 'comum') => {
-                setLogs(prevLogs => [...prevLogs, { id: Date.now(), msg, tipo }]);
+                setLogs(prevLogs => [...prevLogs, { id: Date.now() + Math.random(), msg, tipo }]);
             };
 
             const evoluirAtributo = (attr) => {
@@ -339,7 +348,7 @@
                     mana: 10 + (stats.resistencia * 5) + manaExtra, maxMana: 10 + (stats.resistencia * 5) + manaExtra,
                     ouro: 70, local: "Vila Verdejante", atributosBase: stats,
                     pontosAtributo: 0, // Pontos livres para distribuir
-                    equipamento: { arma: null, armadura: null, acessorio: null },
+                    equipamento: { arma: null, armadura: null, acessorio: null, pet: null },
                     magias: magiasIniciais, inventario: [],
                     rankGuilda: 'F', missoesCompletas: 0, missaoAtiva: null
                 });
@@ -407,20 +416,39 @@
             };
 
             const equiparItem = (item) => {
-                const slot = item.tipo === 'Arma' ? 'arma' : item.tipo === 'Armadura' ? 'armadura' : 'acessorio';
-                if (!['arma', 'armadura', 'acessorio'].includes(slot)) return; // Caso item nao tenha tipo certo
+                const slot = item.tipo === 'Arma' ? 'arma' :
+                    item.tipo === 'Armadura' ? 'armadura' :
+                        item.tipo === 'Pet' ? 'pet' : 'acessorio';
+
+                if (!['arma', 'armadura', 'acessorio', 'pet'].includes(slot)) return;
 
                 setJogador(p => {
                     const itemAtual = p.equipamento[slot];
                     let novoInv = p.inventario.filter(i => i.uid !== item.uid);
-
-                    // Se ja tem algo equipado, devolve pro inventario
                     if (itemAtual) novoInv.push(itemAtual);
+
+                    const novoEquipamento = { ...p.equipamento, [slot]: item };
+
+                    // Cálculo de Delta da Resistência
+                    // Evita resetar o HP total acumulado por níveis
+                    const resAntiga = itemAtual && itemAtual.bonus && itemAtual.bonus.resistencia ? itemAtual.bonus.resistencia : 0;
+                    const resNova = item.bonus && item.bonus.resistencia ? item.bonus.resistencia : 0;
+                    const deltaRes = resNova - resAntiga;
+
+                    const hpChange = deltaRes * 5;
+                    const manaChange = deltaRes * 5;
+
+                    const novoMaxHp = p.maxHp + hpChange;
+                    const novoMaxMana = p.maxMana + manaChange;
 
                     return {
                         ...p,
-                        equipamento: { ...p.equipamento, [slot]: item },
-                        inventario: novoInv
+                        equipamento: novoEquipamento,
+                        inventario: novoInv,
+                        maxHp: novoMaxHp,
+                        maxMana: novoMaxMana,
+                        hp: Math.min(p.hp, novoMaxHp),
+                        mana: Math.min(p.mana, novoMaxMana)
                     };
                 });
                 addLog(`Equipou ${item.nome}.`, 'info');
@@ -430,12 +458,30 @@
                 setJogador(p => {
                     const item = p.equipamento[slot];
                     if (!item) return p;
+
+                    const novoEquipamento = { ...p.equipamento, [slot]: null };
+
+                    // Cálculo de Delta (Remover)
+                    const resRemovida = item.bonus && item.bonus.resistencia ? item.bonus.resistencia : 0;
+                    const deltaRes = -resRemovida;
+
+                    const hpChange = deltaRes * 5;
+                    const manaChange = deltaRes * 5;
+
+                    const novoMaxHp = p.maxHp + hpChange;
+                    const novoMaxMana = p.maxMana + manaChange;
+
                     return {
                         ...p,
-                        equipamento: { ...p.equipamento, [slot]: null },
-                        inventario: [...p.inventario, item]
+                        equipamento: novoEquipamento,
+                        inventario: [...p.inventario, item],
+                        maxHp: novoMaxHp,
+                        maxMana: novoMaxMana,
+                        hp: Math.min(p.hp, novoMaxHp),
+                        mana: Math.min(p.mana, novoMaxMana)
                     };
                 });
+                addLog(`Desequipou item do slot ${slot}.`, 'info');
             };
 
             // ... (viajar, explorar... mantem igual mas ATENÇÃO: usar 'atributos' variable calculada em vez de 'jogador.atributos') ...
@@ -476,12 +522,13 @@
                 // Aranha antes de Gigante para "Aranha Gigante" funcionar
                 if (nome.includes("Aranha")) return "🕷️";
 
-                // Prioridade para Pântano (Cobra/Crocodilo)
+                // Prioridade para Animais e Monstros Específicos
+                if (nome.includes("Rato") || nome.includes("Ratataz")) return "🐀";
                 if (nome.includes("Cobra") || nome.includes("Serpente")) return "🐍";
                 if (nome.includes("Crocodilo")) return "🐊";
                 if (nome.includes("Slime")) return "🧪";
 
-                if (nome.includes("Gigante")) return "🥶";
+                if (nome.includes("Gigante")) return "🥶"; // Gigante de Gelo (ou outros gigantes, mas Rato Gigante já foi pego acima)
 
                 // Goblins e Orcs Verdes
                 if (nome.includes("Goblin")) return <span style={estiloVerde}>👺</span>;
@@ -520,7 +567,11 @@
                     }
 
                     setMonstros(novosMonstros);
-                    addLog(`Você encontrou ${qtdMonstros > 1 ? 'um grupo de inimigos!' : 'um inimigo!'}`, 'perigo');
+                    if (qtdMonstros > 1) {
+                        addLog(`⚠️ PERIGO! Uma HORDA de ${qtdMonstros} inimigos cercou você!`, 'perigo');
+                    } else {
+                        addLog(`Você encontrou um inimigo!`, 'perigo');
+                    }
                 } else {
                     // Evento de Exploração (Item, Ouro ou Nada)
                     const sorte = Math.random();
@@ -544,7 +595,7 @@
                 const custo = habilidade.mana;
                 if (jogador.mana < custo) return addLog("Energia/Mana insuficiente!", 'perigo');
 
-                const ehAtaque = ['Ataque', 'Físico', 'Mágico'].includes(habilidade.tipo);
+                const ehAtaque = ['Ataque', 'Físico', 'Mágico', 'Físico/Sagrado'].includes(habilidade.tipo);
                 if (monstros.length === 0 && ehAtaque) return addLog("Não há inimigos para atacar.");
 
                 // Efeito
@@ -557,76 +608,116 @@
                     }));
                     addLog(`Usou ${habilidade.nome} e recuperou ${cura} PV.`, 'cura');
                 } else if (ehAtaque) {
-                    const alvoIndex = 0;
-                    const alvo = monstros[alvoIndex];
 
-                    // Cálculo de Dano: Físico vs Mágico
+                    // Definição de Alvos (AoE ou Single)
+                    // Se Habilidade.area = true, ataca TODOS. Se não, só o primeiro.
+                    let indicesAlvos = habilidade.area ? monstros.map((_, i) => i) : [0];
+                    if (habilidade.area) addLog(`Usou ${habilidade.nome} em ÁREA! 💥`, 'magia');
+
+                    // Cálculo de Dano Base
                     let atributoBonus = atributos.poderDeFogo;
-                    if (habilidade.tipo === 'Físico') {
-                        atributoBonus = Math.max(atributos.forca, atributos.habilidade); // Usa o maior entre Força e Destreza
+                    if (habilidade.tipo.includes('Físico')) {
+                        atributoBonus = Math.max(atributos.forca, atributos.habilidade);
+                    }
+                    const danoBase = Math.floor(habilidade.poder + atributoBonus);
+                    const danoRolado = Math.floor(danoBase * (1 + Math.random() * 0.2));
+
+                    if (!habilidade.area) {
+                        addLog(`Usou ${habilidade.nome} em ${monstros[0].nome} causando ${danoRolado} de dano!`, 'magia');
                     }
 
-                    const danoBase = Math.floor(habilidade.poder + atributoBonus);
-                    const dano = Math.floor(danoBase * (1 + Math.random() * 0.2)); // Variação de 20%
+                    // Pet (Só ataca o primeiro alvo para não ficar muito OP no AoE)
+                    // Mas se o usuário quiser AoE do pet, futuramente implementamos
+                    let danoPet = 0;
+                    if (jogador.equipamento.pet && jogador.equipamento.pet.bonus.dano) {
+                        danoPet = jogador.equipamento.pet.bonus.dano;
+                        addLog(`${jogador.equipamento.pet.nome} ajudou! +${danoPet} dano no alvo principal.`, 'magia');
+                    }
+                    if (jogador.equipamento.pet && jogador.equipamento.pet.bonus.cura) {
+                        setJogador(p => ({ ...p, hp: Math.min(p.maxHp, p.hp + jogador.equipamento.pet.bonus.cura) }));
+                    }
 
-                    addLog(`Usou ${habilidade.nome} em ${alvo.nome} causando ${dano} de dano!`, 'magia');
+                    // Processamento de Dano e Mortes
+                    let xpTotal = 0;
+                    let ouroTotal = 0;
+                    let algunsMorreu = false;
 
-                    const novoHpAlvo = alvo.hp - dano;
-                    let novosMonstros = monstros.map((m, i) => i === alvoIndex ? { ...m, hp: novoHpAlvo } : m);
+                    const novosMonstros = monstros.map((m, index) => {
+                        if (indicesAlvos.includes(index)) {
+                            let danoAplicado = danoRolado;
+                            if (index === 0) danoAplicado += danoPet; // Pet só bônus no primeiro
 
-                    if (novoHpAlvo <= 0) {
-                        addLog(`${alvo.nome} foi derrotado!`, 'sucesso');
+                            const novoHp = m.hp - danoAplicado;
 
-                        if (campeonatoAtivo) {
+                            if (habilidade.area) addLog(`${m.nome} sofreu ${danoAplicado} de dano.`, 'magia');
+
+                            if (novoHp <= 0) {
+                                xpTotal += (m.xp || 0);
+                                ouroTotal += (m.ouro || 0);
+                                algunsMorreu = true;
+                                addLog(`💀 ${m.nome} abatido!`, 'sucesso');
+                                return null; // Marca para remoção
+                            }
+                            return { ...m, hp: novoHp };
+                        }
+                        return m;
+                    }).filter(m => m !== null);
+
+                    // Atualiza Monstros na tela
+                    setMonstros(novosMonstros);
+
+                    // Se matou alguém, processa recompensas
+                    if (algunsMorreu) {
+                        if (jogador.raca === 'Humano') xpTotal = Math.floor(xpTotal * 1.10);
+
+                        addLog(`RECOMPENSA TOTAL: ✨${xpTotal} XP | 💰${ouroTotal} Ouro.`, 'loot');
+
+                        if (campeonatoAtivo && novosMonstros.length === 0) {
                             avancarRodadaCampeonato();
-                            setJogador(p => ({ ...p, mana: p.mana - custo })); // Consome mana mesmo se matar
+                            setJogador(p => ({ ...p, mana: p.mana - custo }));
                             return;
                         }
 
-                        // Lógica de Kill (XP, Drops, Level Up) - Simplificada para não duplicar código
-                        // Idealmente deveria ser uma função helper `processarKill(alvo)`
                         setJogador(p => {
-                            let gainXp = alvo.xp;
-                            if (p.raca === 'Humano') gainXp = Math.floor(gainXp * 1.10);
-
-                            let novaXp = p.xp + gainXp;
+                            let novaXp = p.xp + xpTotal;
                             let novoNivel = p.nivel;
                             let novoProximoXp = p.proximoXp;
                             let msgLevelUp = "";
 
-                            if (p.nivel >= NIVEL_MAX_CLASSE_BASICA && !p.classeEvoluida) {
-                                if (novaXp >= p.proximoXp) novaXp = p.proximoXp - 1;
-                            }
-
-                            if (novaXp >= p.proximoXp) {
+                            if (novaXp >= p.proximoXp && (p.nivel < 10 || p.classeEvoluida)) {
                                 novoNivel++;
                                 novaXp = novaXp - p.proximoXp;
                                 novoProximoXp = Math.floor(p.proximoXp * 1.5);
                                 msgLevelUp = `LEVEL UP! Nível ${novoNivel}!`;
                                 addLog(msgLevelUp, 'sucesso');
                                 setTimeout(() => setModal('levelup'), 500);
+                            } else if (novaXp >= p.proximoXp) {
+                                novaXp = p.proximoXp - 1;
                             }
-
-                            const hpFinal = msgLevelUp ? p.maxHp + 10 : p.hp;
-                            const maxHpFinal = msgLevelUp ? p.maxHp + 10 : p.maxHp;
 
                             return {
                                 ...p,
                                 xp: novaXp,
-                                ouro: p.ouro + alvo.ouro,
+                                ouro: p.ouro + ouroTotal,
                                 nivel: novoNivel,
                                 proximoXp: novoProximoXp,
                                 pontosAtributo: msgLevelUp ? (p.pontosAtributo || 0) + 1 : (p.pontosAtributo || 0),
-                                hp: hpFinal,
-                                maxHp: maxHpFinal,
+                                hp: msgLevelUp ? p.maxHp + 10 : p.hp,
+                                maxHp: msgLevelUp ? p.maxHp + 10 : p.maxHp,
+                                // Mana: consome custo, mas regenera se upar
                                 mana: Math.max(0, (msgLevelUp ? p.maxMana + 5 : p.mana) - custo),
-                                maxMana: msgLevelUp ? p.maxMana + (p.raca === 'Elfo' ? 6 : 5) : p.maxMana
+                                maxMana: msgLevelUp ? p.maxMana + 5 : p.maxMana
                             };
                         });
 
-                        novosMonstros = novosMonstros.filter((_, i) => i !== alvoIndex);
+                        // Dungeon Check (Movemos para depois do setJogador para garantir loot)
+                        if (dungeonAtiva && novosMonstros.length === 0) {
+                            setTimeout(() => avancarSalaDungeon(), 1000);
+                            return;
+                        }
+
                     } else {
-                        // Se não matou, consome mana normal
+                        // Ninguém morreu, só gastou mana
                         setJogador(p => ({ ...p, mana: p.mana - custo }));
                     }
 
@@ -671,7 +762,12 @@
                 if (Math.random() < chance) {
                     addLog("Você fugiu com sucesso! 🏃💨", 'sucesso');
                     setMonstros([]);
-                    // setIndiceAlvo não existe nesta versão simplificada
+
+                    if (dungeonAtiva) {
+                        setDungeonAtiva(null);
+                        setSalaDungeon(0);
+                        addLog("Você abandonou a Masmorra.", 'comum');
+                    }
                 } else {
                     addLog("Falha ao fugir! Você tropeçou... 😱", 'perigo');
                     // Perde o turno, monstros atacam (Lógica inline, pois turnoMonstro não existe como func)
@@ -696,7 +792,115 @@
                 }
             };
 
+            const removerItemInventario = (itemId, qtd = 1) => {
+                setJogador(prev => {
+                    const idx = prev.inventario.findIndex(i => i.id === itemId);
+                    if (idx < 0) return prev;
+                    if (qtd > 1) {
+                        // TODO: Se tiver stack
+                    }
+                    const novoInv = [...prev.inventario];
+                    novoInv.splice(idx, 1);
+                    return { ...prev, inventario: novoInv };
+                });
+            };
+
+            const capturar = () => {
+                if (monstros.length === 0) return;
+                const alvo = monstros[0]; // Captura sempre o primeiro por enquanto
+
+                // Verifica Item
+                const temJaula = jogador.inventario.find(i => i.id === 'jaula_simples');
+                if (!temJaula) return addLog("Você precisa de uma Jaula Simples!", 'perigo');
+
+                avancarTempo(1);
+
+                // Gasta a Jaula (Sempre gasta, sucesso ou falha)
+                removerItemInventario('jaula_simples');
+
+                // Chance Base
+                let chance = 0.1; // 10%
+                const pctHp = alvo.hp / alvo.maxHp;
+
+                if (pctHp <= 0.3) chance = 0.8; // 30% HP ou menos -> 80%
+                else if (pctHp <= 0.5) chance = 0.5; // 50% HP ou menos -> 50%
+
+                // Roll
+                if (Math.random() < chance) {
+                    addLog(`CAPTURA COM SUCESSO! ${alvo.nome} foi capturado!`, 'sucesso');
+
+                    // Lógica de Missão (Conta como Coletar)
+                    if (jogador.missaoAtiva && jogador.missaoAtiva.titulo.includes("Coletar")) {
+                        const mAlvo = jogador.missaoAtiva.titulo.split(" ")[1];
+                        if (alvo.nome.includes(mAlvo.slice(0, -1))) {
+                            setJogador(p => {
+                                const missao = p.missaoAtiva;
+                                const atualizado = { ...missao, atual: Math.min(missao.atual + 1, missao.req) };
+                                if (atualizado.atual >= atualizado.req && missao.atual < missao.req) {
+                                    addLog("Missão de Coleta Cumprida!", 'sucesso');
+                                }
+                                return { ...p, missaoAtiva: atualizado };
+                            });
+                        }
+                    }
+
+                    // RECOMPENSA DA CAPTURA (Bônus de XP por Estudo + Ouro do Monstro)
+                    // Capturar rende 20% a mais de XP que matar!
+                    const xpBase = alvo.xp;
+                    const ouroBase = alvo.ouro;
+                    const xpCapture = Math.floor(xpBase * 1.2);
+
+                    addLog(`CAPTURA: Recebeu ✨${xpCapture} XP (Bônus!) e 💰${ouroBase} Ouro.`, 'loot');
+
+                    setJogador(p => {
+                        let gainXp = xpCapture;
+                        if (p.raca === 'Humano') gainXp = Math.floor(gainXp * 1.10);
+
+                        let novaXp = p.xp + gainXp;
+                        let novoNivel = p.nivel;
+                        let novoProximoXp = p.proximoXp;
+                        let msgLevelUp = "";
+
+                        if (novaXp >= p.proximoXp && (p.nivel < 10 || p.classeEvoluida)) { // Checagem simples de lvl cap
+                            novoNivel++;
+                            novaXp = novaXp - p.proximoXp;
+                            novoProximoXp = Math.floor(p.proximoXp * 1.5);
+                            msgLevelUp = `LEVEL UP! Nível ${novoNivel}! (+1 Ponto de Atributo)`;
+                            addLog(msgLevelUp, 'sucesso');
+                            setTimeout(() => setModal('levelup'), 500);
+                        } else if (novaXp >= p.proximoXp) {
+                            novaXp = p.proximoXp - 1; // Capa lvl 10
+                            addLog("Limite de Nível atingido!", 'perigo');
+                        }
+
+                        return {
+                            ...p,
+                            xp: novaXp,
+                            ouro: p.ouro + ouroBase,
+                            nivel: novoNivel,
+                            proximoXp: novoProximoXp,
+                            pontosAtributo: msgLevelUp ? (p.pontosAtributo || 0) + 1 : (p.pontosAtributo || 0),
+                            hp: msgLevelUp ? p.maxHp + 10 : p.hp,
+                            maxHp: msgLevelUp ? p.maxHp + 10 : p.maxHp,
+                            mana: msgLevelUp ? p.maxMana + 5 : p.mana,
+                            maxMana: msgLevelUp ? p.maxMana + 5 : p.maxMana // Simplificado
+                        };
+                    });
+
+                    // Remove Monstro
+                    const novos = monstros.slice(1);
+                    setMonstros(novos);
+
+                } else {
+                    addLog(`A captura falhou! ${alvo.nome} escapou da jaula!`, 'perigo');
+                    // Inimigo ataca no turno dele (abaixo, se implementado separado ou se o atacar() chamar logica global. Como aqui é uma acao separada, precisamos chamar contra-ataque ou nao? atacar() chama. Vamos deixar sem contra ataque imediato por enquanto ou chamar a logica de ataque inimigo?)
+                    // Por enquanto, falha é apenas perder o turno e item.
+                }
+
+            };
+
             const atacar = () => {
+                avancarTempo(1);
                 if (monstros.length === 0) return;
                 if (jogador.hp <= 0) return; // Não ataca se morto
 
@@ -714,28 +918,40 @@
                     dano += 2; // +2 Dano Fixo
                 }
 
-                const novoHpAlvo = alvo.hp - dano;
+                let novoHpAlvo = alvo.hp - dano;
 
                 addLog(`Você causou ${dano} de dano em ${alvo.nome}.`);
+
+                // Ação do Pet
+                if (jogador.equipamento.pet) {
+                    const pet = jogador.equipamento.pet;
+                    if (pet.bonus.dano) {
+                        const danoPet = pet.bonus.dano;
+                        novoHpAlvo -= danoPet;
+                        addLog(`${pet.nome} mordeu ${alvo.nome} causando ${danoPet} de dano! 🐾`, 'magia');
+                    }
+                    if (pet.bonus.cura) {
+                        setJogador(p => ({ ...p, hp: Math.min(p.maxHp, p.hp + pet.bonus.cura) }));
+                        addLog(`${pet.nome} te curou em ${pet.bonus.cura} PV. ✨`, 'cura');
+                    }
+                }
 
                 // Prepara lista de monstros para o próximo estado (atualizando o alvo)
                 let novosMonstros = monstros.map((m, i) => i === alvoIndex ? { ...m, hp: novoHpAlvo } : m);
 
                 // Verifica morte do alvo
                 if (novoHpAlvo <= 0) {
-                    addLog(`${alvo.nome} foi derrotado!`, 'sucesso');
+                    // Calculo Prévio de Recompensas
+                    let xpGanho = alvo.xp || 0;
+                    let ouroGanho = alvo.ouro || 0;
+                    if (jogador.raca === 'Humano') xpGanho = Math.floor(xpGanho * 1.10);
+
+                    addLog(`💀 ${alvo.nome} foi derrotado! Recebeu: ✨${xpGanho} XP e 💰${ouroGanho} Ouro.`, 'sucesso');
 
                     if (campeonatoAtivo) {
                         avancarRodadaCampeonato();
                         return; // Encerra ataque
                     }
-
-
-                    // Calculo Prévio de Recompensas para Log
-                    let xpGanho = alvo.xp;
-                    if (jogador.raca === 'Humano') xpGanho = Math.floor(xpGanho * 1.10);
-
-                    addLog(`Recebeu ${xpGanho} XP e ${alvo.ouro} Ouro.`, 'loot');
 
                     // Drops e XP
                     setJogador(p => {
@@ -802,14 +1018,31 @@
                         addLog(`Drop: ${alvo.drop}`, 'loot');
                     }
 
+                    // Se estiver em Dungeon, avança sala (não respawna monstro normal)
+                    if (dungeonAtiva) {
+                        // Limpa monstro visualmente para não atacar de novo
+                        setMonstros([]);
+                        // Pequeno delay para ler o log de loot e transição
+                        setTimeout(() => avancarSalaDungeon(), 1000);
+                        return;
+                    }
+
                     if (jogador.missaoAtiva) {
-                        // Missão Normal de Eliminar
-                        // Match mais flexível: verifica se o nome do monstro (parte dele) está na descrição ou título
-                        if (jogador.missaoAtiva.titulo.includes("Eliminar") && (jogador.missaoAtiva.titulo.includes(alvo.nome) || alvo.nome.includes(jogador.missaoAtiva.titulo.split(" ")[1].slice(0, -1)))) {
-                            // Tenta match simples da palavra chave (ex: "Goblin" em "Eliminar Goblins")
-                            // A logica acima é meio complexa, vamos simplificar no update do gerador para usar singular
-                            // Gerador agora usa Singular. "Eliminar Goblins". Title split [1] = "Goblins". Slice 0,-1 = "Goblin".
-                            // Alvo nome "Goblin Saqueador". Includes "Goblin"? Sim.
+                        const mTitulo = jogador.missaoAtiva.titulo;
+                        const mAlvo = mTitulo.split(" ")[1]; // "Eliminar [Goblin]s" ou "Coletar [Slime]s"
+
+                        // Verifica se é uma missão de combate (Eliminar ou Coletar monstro)
+                        // A logica aceita "Coletar" se o alvo for um monstro que acabamos de matar
+                        const tiposCombate = ['Eliminar', 'Coletar'];
+                        const ehMissaoCombate = tiposCombate.some(t => mTitulo.includes(t));
+
+                        // Normaliza nomes para comparação (remove 's' plural basico se precisar, ou verifica inclusão)
+                        // Alvo da missão: "Slimes" -> Monstro: "Slime"
+                        // Alvo da missão: "Goblins" -> Monstro: "Goblin Saqueador"
+                        const nomeMonstro = alvo.nome; // "Slime", "Goblin Saqueador"
+                        const matchNome = nomeMonstro.includes(mAlvo.slice(0, -1)) || mAlvo.includes(nomeMonstro);
+
+                        if (ehMissaoCombate && matchNome) {
                             setJogador(p => {
                                 const missao = p.missaoAtiva;
                                 const atualizado = { ...missao, atual: Math.min(missao.atual + 1, missao.req) };
@@ -864,6 +1097,7 @@
             };
 
             const viajar = (local) => {
+                avancarTempo(5); // Viajar avança mais o tempo
                 const custo = 20 + (jogador.nivel * 5);
                 if (jogador.ouro < custo) return addLog("Sem ouro para a carruagem!");
 
@@ -909,6 +1143,57 @@
                 addLog("Missão cancelada.", 'perigo');
             };
 
+            const minerar = () => {
+                if (monstros.length > 0) return addLog("Você não pode minerar em combate!", 'perigo');
+
+                // Verificar Picareta (Inventário ou Equipado?)
+                // Simplificação: Verifica se tem item "Ferramenta" no inventário ou acessório
+                const picaretas = [...jogador.inventario, jogador.equipamento.arma, jogador.equipamento.armadura, jogador.equipamento.acessorio]
+                    .filter(i => i && i.tipo === 'Ferramenta');
+
+                if (picaretas.length === 0) return addLog("Você precisa de uma Picareta!", 'perigo');
+
+                // Pega a melhor picareta
+                const melhorPicareta = picaretas.reduce((prev, current) => (prev.tier > current.tier) ? prev : current);
+
+                avancarTempo(2); // Minerar cansa e demora
+
+                // Determinar Drops baseado no Local e Tier
+                let dropsPossiveis = [];
+                let chanceFalha = 0.2; // 20% de não vir nada
+
+                if (jogador.local === 'Mina Profunda') {
+                    // Mina Avançada
+                    dropsPossiveis.push({ id: 'minerio_ferro', chance: 0.5 });
+                    if (melhorPicareta.tier >= 2) dropsPossiveis.push({ id: 'minerio_ouro', chance: 0.3 });
+                    if (melhorPicareta.tier >= 2) dropsPossiveis.push({ id: 'minerio_mithril', chance: 0.1 });
+                    if (melhorPicareta.tier >= 3) dropsPossiveis.push({ id: 'minerio_adamantina', chance: 0.05 });
+                } else {
+                    // Mina da Vila (Básica)
+                    dropsPossiveis.push({ id: 'minerio_cobre', chance: 0.6 });
+                    dropsPossiveis.push({ id: 'minerio_ferro', chance: 0.1 }); // Raro na vila
+                }
+
+                // Rolar Loot
+                if (Math.random() < chanceFalha) {
+                    return addLog("Você bateu na pedra mas só achou poeira.", 'comum');
+                }
+
+                const dropSorteado = dropsPossiveis.find(d => Math.random() < d.chance);
+
+                if (dropSorteado) {
+                    const itemDrop = ITENS_LOJA.find(i => i.id === dropSorteado.id) || { nome: "Pedra", id: "pedra", tipo: "Lixo" }; // Fallback seguro
+
+                    setJogador(p => ({
+                        ...p,
+                        inventario: [...p.inventario, { ...itemDrop, uid: Date.now() }]
+                    }));
+                    addLog(`⛏️ Você minerou: ${itemDrop.nome}!`, 'sucesso');
+                } else {
+                    addLog("Você encontrou apenas pedras sem valor.", 'comum');
+                }
+            };
+
             const respawn = () => {
                 if (jogador.hp > 0) return; // Guard clause: Não cobrar se já estiver vivo
                 setJogador(p => {
@@ -928,12 +1213,18 @@
                     };
                 });
                 setMonstros([]);
+                // Reset Dungeon State se morrer nela
+                setDungeonAtiva(null);
+                setSalaDungeon(0);
+                setCampeonatoAtivo(false);
+                setRodadaCampeonato(0);
                 addLog(`Você foi resgatado e levado à Vila. (Pena: -10% Ouro/XP)`, 'perigo');
             };
 
             const abrirTaverna = () => setModal('taverna');
 
             const acaoTaverna = (tipo) => {
+                avancarTempo(tipo === 'bebida' ? 1 : 3); // Beber avança 1, Descansar avança 3
                 const custoBebida = 1 + jogador.nivel; // Base 2 no lvl 1, aumenta +1 por lvl (2, 3, 4...)
                 const custoDescanso = 14 + jogador.nivel; // Base 15 no lvl 1, aumenta +1 por lvl (15, 16, 17...)
 
@@ -957,6 +1248,57 @@
                     addLog("Você dormiu como uma pedra. Energias renovadas!", 'sucesso');
                     setModal(null);
                 }
+            };
+
+            const venderItem = (itemParams) => {
+                // Suporta item agrupado do inventário
+                const itemNome = itemParams.nome;
+                const itemPreco = itemParams.preco || 1;
+
+                const ehEmpilhavel = ['Recurso', 'Consumivel', 'Lixo', 'Loot', 'Pet'].includes(itemParams.tipo);
+
+                let uidsParaVender = [];
+                let qtdTotal = 0;
+
+                if (ehEmpilhavel) {
+                    const stack = jogador.inventario.filter(i => i.id === itemParams.id);
+                    qtdTotal = stack.length;
+                    uidsParaVender = stack.map(i => i.uid);
+                } else {
+                    qtdTotal = 1;
+                    uidsParaVender = [itemParams.uid];
+                }
+
+                if (qtdTotal === 0) return;
+
+                let qtdVenda = 1;
+
+                if (qtdTotal > 1) {
+                    // Opção de Vender Tudo
+                    if (confirm(`Vender TODOS os ${qtdTotal}x ${itemNome} por ${qtdTotal * itemPreco} ouro?`)) {
+                        qtdVenda = qtdTotal;
+                    } else {
+                        // Opção de Vender Um
+                        if (confirm(`Vender apenas 1x ${itemNome} por ${itemPreco} ouro?`)) {
+                            qtdVenda = 1;
+                        } else {
+                            return;
+                        }
+                    }
+                } else {
+                    if (!confirm(`Vender ${itemNome} por ${itemPreco} ouro?`)) return;
+                }
+
+                setJogador(p => {
+                    const uidsRemover = uidsParaVender.slice(0, qtdVenda);
+                    const novoInv = p.inventario.filter(i => !uidsRemover.includes(i.uid));
+                    return {
+                        ...p,
+                        ouro: p.ouro + (itemPreco * qtdVenda),
+                        inventario: novoInv
+                    };
+                });
+                addLog(`💰 Vendeu ${qtdVenda}x ${itemNome} por ${itemPreco * qtdVenda} Ouro.`, 'sucesso');
             };
 
             const aceitarMissao = (missao) => {
@@ -1003,7 +1345,10 @@
                             tempo: tempoAteCampeonato,
                             rodada: rodadaCampeonato,
                             ativo: campeonatoAtivo
-                        }
+                        },
+                        cicloDia: cicloDia, // Salva o ciclo do dia
+                        progressoDia: progressoDia, // Salva o progresso do dia
+                        eventoAleatorioCd: eventoAleatorioCd // Salva o cooldown de eventos
                     }
                 };
 
@@ -1151,6 +1496,12 @@
                         setRodadaCampeonato(0);
                         setCampeonatoAtivo(false);
                     }
+
+                    // Restaurar Ciclo do Dia
+                    setCicloDia(dados.cicloDia || 'Manhã');
+                    setProgressoDia(dados.progressoDia || 0);
+                    setEventoAleatorioCd(dados.eventoAleatorioCd || 0);
+
                     setView('jogo');
                     setSaveId(saveData.id); // Registra que estamos jogando este save
                     setModal(null);
@@ -1186,6 +1537,8 @@
             const iniciarCampeonato = () => {
                 if (!campeonatoDisponivel) return;
 
+                avancarTempo(5); // Iniciar campeonato avança o tempo
+
                 setCampeonatoAtivo(true);
                 setRodadaCampeonato(1);
                 setModal(null);
@@ -1196,7 +1549,7 @@
                     const biomasArena = LOCAIS_FIXOS.filter(l => l.tipo !== 'Vila' && l.tipo !== 'Cidade').map(l => l.nome);
                     const biomaSorteado = biomasArena[Math.floor(Math.random() * biomasArena.length)] || "Bosque Ancestral";
 
-                    const mobBase = Gerador.monstro(jogador.nivel, biomaSorteado);
+                    const mobBase = Gerador.monstro(jogador.nivel, biomaSorteado, cicloDia);
 
                     // 2. Título Aleatório
                     const titulos = ['Gladiador', 'Veterano', 'Algoz', 'Destruidor', 'Mercenário', 'Caçador'];
@@ -1233,7 +1586,121 @@
                 addLog(`Inimigo vindo de: ${LOCAIS_FIXOS.find(l => POOLS[l.nome]?.some(p => inimigo.nome.includes(p.nome)))?.bioma || 'Mundo Selvagem'}`, 'comum'); // Tentativa de fluff
             };
 
+            const iniciarMasmorra = (masmorra) => {
+                const now = Date.now();
+                const cd = jogador.dungeonCooldowns?.[masmorra.id] || 0;
+                if (now < cd) {
+                    const minRestantes = Math.ceil((cd - now) / 60000);
+                    return addLog(`Masmorra em descanso! Volte em ${minRestantes} minutos.`, 'perigo');
+                }
+
+                if (jogador.nivel < masmorra.nivelMin) return addLog(`Nível insuficiente! Requer Nível ${masmorra.nivelMin}.`, 'perigo');
+
+                avancarTempo(3); // Entrar na masmorra avança o tempo
+
+                setDungeonAtiva(masmorra);
+                setSalaDungeon(1);
+                setModal(null); // Fecha mapa ou modal de dungeon
+
+                addLog(`🗝️ Você entrou em: ${masmorra.nome}`, 'loot');
+                addLog(`⚠️ Cuidado! Há ${masmorra.salas} salas e um Chefe Final.`, 'perigo');
+
+                // Gerar Monstro da Sala 1 (Normal)
+                // Usa Pool se existir
+                const poolKey = masmorra.pool || masmorra.local;
+                const mobBase = Gerador.monstro(jogador.nivel, poolKey, cicloDia);
+                mobBase.nome = `[Masmorra] ${mobBase.nome}`;
+                mobBase.hp = Math.floor(mobBase.hp * 1.5); // Monstros de dungeon são Elite
+                mobBase.maxHp = mobBase.hp;
+                mobBase.xp = Math.floor(mobBase.xp * 1.5);
+                mobBase.dano = Math.floor(mobBase.dano * 1.2);
+                mobBase.uid = Date.now();
+
+                setMonstros([mobBase]);
+            };
+
+            const avancarSalaDungeon = () => {
+                if (!dungeonAtiva) return;
+
+                avancarTempo(1); // Avançar sala avança o tempo
+
+                const novaSala = salaDungeon + 1;
+
+                if (novaSala > dungeonAtiva.salas) {
+                    // Masmorra Concluída (Matou o Boss da sala anterior)
+                    addLog(`🎉 MASMORRA COMPLETADA! Você conquistou ${dungeonAtiva.nome}!`, 'sucesso');
+
+                    const bonusOuro = 1500;
+                    // Lógica de Loot Épico (Drop Garantido de 1 item raro ou aleatório)
+                    setDungeonAtiva(null);
+                    setSalaDungeon(0);
+                    setModal(null);
+
+                    // Aplicar Cooldown (5 Minutos)
+                    setJogador(p => ({
+                        ...p,
+                        ouro: p.ouro + bonusOuro,
+                        dungeonCooldowns: {
+                            ...(p.dungeonCooldowns || {}),
+                            [dungeonAtiva.id]: Date.now() + (5 * 60 * 1000)
+                        }
+                    }));
+
+                    alert(`MASMORRA VENCIDA!\nRecompensa: ${bonusOuro} Ouro!\n(Masmorra em descanso por 5 min)`);
+
+                } else if (novaSala === dungeonAtiva.salas) {
+                    // SALA DO CHEFE
+                    setSalaDungeon(novaSala);
+                    addLog(`💀 SALA FINAL! O CHEFE TE AGUARDA!`, 'perigo');
+
+                    // Tenta achar o boss específico ou gera um forte
+                    let boss = null;
+                    const poolKey = dungeonAtiva.pool || dungeonAtiva.local;
+                    const poolLocal = POOLS[poolKey] || [];
+                    const bossData = poolLocal.find(m => m.nome === dungeonAtiva.boss) || poolLocal[poolLocal.length - 1]; // Pega o ultimo (chute) se nao achar nome exato
+
+                    if (bossData) {
+                        boss = { ...bossData, uid: Date.now() };
+                        // Buff de Boss de Dungeon (Mesmo se já for boss, garante que é desafio)
+                        boss.hp = Math.floor(boss.baseHp * 2.5);
+                        boss.maxHp = boss.hp;
+                        boss.dano = Math.floor(boss.baseDano * 1.5);
+                        boss.xp = boss.xp * 5;
+                        boss.ouro = boss.ouro * 5;
+                        boss.nome = `[CHEFE] ${boss.nome}`;
+                    } else {
+                        // Fallback Genérico
+                        boss = Gerador.monstro(jogador.nivel, poolKey, cicloDia);
+                        boss.nome = `[CHEFE] ${dungeonAtiva.boss}`;
+                        boss.hp = boss.hp * 5;
+                        boss.maxHp = boss.hp;
+                        boss.dano = boss.dano * 2;
+                    }
+                    setMonstros([boss]);
+                } else {
+                    // Sala Normal
+                    setSalaDungeon(novaSala);
+                    addLog(`➡️ Avançando para Sala ${novaSala}/${dungeonAtiva.salas}...`, 'comum');
+
+                    // Pequena cura entre salas?
+                    setJogador(p => ({ ...p, hp: Math.min(p.maxHp, p.hp + Math.floor(p.maxHp * 0.1)) }));
+                    addLog("Recuperou 10% de vida caminhando...", 'cura');
+
+                    const poolKey = dungeonAtiva.pool || dungeonAtiva.local;
+                    const mobBase = Gerador.monstro(jogador.nivel, poolKey, cicloDia);
+                    mobBase.nome = `[Masmorra] ${mobBase.nome}`;
+                    mobBase.hp = Math.floor(mobBase.hp * 1.5 + (novaSala * 5)); // Escala leve por sala
+                    mobBase.maxHp = mobBase.hp;
+                    mobBase.xp = Math.floor(mobBase.xp * 1.5);
+                    mobBase.uid = Date.now();
+
+                    setMonstros([mobBase]);
+                }
+            };
+
             const avancarRodadaCampeonato = () => {
+                avancarTempo(1); // Avançar rodada avança o tempo
+
                 if (rodadaCampeonato >= 5) {
                     // Vitória Final
                     const bonusOuro = 500 * jogador.nivel;
@@ -1267,7 +1734,7 @@
                     const biomasArena = LOCAIS_FIXOS.filter(l => l.tipo !== 'Vila' && l.tipo !== 'Cidade').map(l => l.nome);
                     const biomaSorteado = biomasArena[Math.floor(Math.random() * biomasArena.length)] || "Bosque Ancestral";
 
-                    const mobBase = Gerador.monstro(jogador.nivel, biomaSorteado);
+                    const mobBase = Gerador.monstro(jogador.nivel, biomaSorteado, cicloDia);
 
                     const titulos = ['Gladiador', 'Veterano', 'Algoz', 'Destruidor', 'Mercenário', 'Caçador'];
                     const titulosEpicos = ['A Lenda', 'O Imortal', 'O Imperador', 'O Ceifador', 'A Besta'];
@@ -1303,6 +1770,48 @@
             React.useEffect(() => {
                 // Verifica se tem saves antigos e migra se quiser, mas por simplicidade vamos manter v2
             }, []);
+
+            // --- LÓGICA DE TEMPO E EVENTOS ---
+            const avancarTempo = (qtd = 1) => {
+                setProgressoDia(prev => {
+                    const novo = prev + qtd;
+                    if (novo >= 10) { // A cada 10 ações, muda o turno
+                        setCicloDia(c => {
+                            const idx = CICLOS.indexOf(c);
+                            const next = CICLOS[(idx + 1) % CICLOS.length];
+                            addLog(`O tempo passou... Agora é ${next}.`, 'comum');
+                            return next;
+                        });
+                        return 0;
+                    }
+                    return novo;
+                });
+            };
+
+            // Eventos Aleatórios (Emboscadas se ficar parado ou explorando)
+            React.useEffect(() => {
+                const checkEvento = setInterval(() => {
+                    if (monstros.length > 0 || dungeonAtiva || modal) return; // Ocupado
+                    if (Date.now() < eventoAleatorioCd) return; // Cooldown
+
+                    // Chance de evento: 20% a cada tick (global safe zones?)
+                    // Cidades são mais seguras? Sim, mas podem ter ladrões.
+                    if (Math.random() > 0.3) {
+                        const localSafe = localAtual?.tipo === 'Cidade' || localAtual?.tipo === 'Vila';
+                        if (localSafe && Math.random() > 0.4) return; // Cidades são 60% safe
+
+                        // Gerar Emboscada
+                        avancarTempo(2);
+                        const mob = Gerador.monstro(jogador.nivel, jogador.local, cicloDia);
+                        mob.nome = `[Emboscada] ${mob.nome}`;
+                        setMonstros([mob]);
+                        addLog("⚠️ EMBOSCADA! Algo te atacou de surpresa!", 'perigo');
+                        setEventoAleatorioCd(Date.now() + 120000); // 2 min cooldown
+                    }
+                }, 45000); // Check a cada 45s
+
+                return () => clearInterval(checkEvento);
+            }, [monstros, dungeonAtiva, modal, eventoAleatorioCd, jogador?.local, cicloDia]);
 
             if (view === 'menu') {
                 return (
@@ -1547,13 +2056,19 @@
                         {/* Main Area */}
                         <div className="flex-1 flex flex-col gap-2 md:gap-4 relative order-1 md:order-2 overflow-hidden min-h-0">
                             {/* Header Loc */}
-                            <div className="glass-card p-4 rounded-xl flex flex-row justify-between items-center gap-4">
-                                <div className="min-w-fit">
+                            <div className="glass-card p-4 rounded-xl flex flex-col gap-4 items-center">
+                                <div className="min-w-fit text-center">
                                     <h1 className="text-2xl font-fantasy text-amber-100">{jogador.local}</h1>
-                                    <p className="text-xs text-zinc-400">{localAtual?.descricao}</p>
+                                    <div className="flex items-center justify-center gap-2 text-xs text-zinc-400">
+                                        <span>{localAtual?.descricao}</span>
+                                        <span className="text-zinc-600">|</span>
+                                        <span className={`font-bold ${cicloDia === 'Noite' ? 'text-purple-400' : cicloDia === 'Tarde' ? 'text-orange-400' : 'text-yellow-200'}`}>
+                                            {cicloDia === 'Manhã' ? '☀️' : cicloDia === 'Tarde' ? '🌅' : '🌙'} {cicloDia}
+                                        </span>
+                                    </div>
                                 </div>
-                                <div className="flex gap-2 overflow-x-auto w-full md:w-auto pb-2 md:pb-0 scroll-hide justify-start md:justify-end">
-                                    {ehCidade && (
+                                <div className="flex gap-2 overflow-x-auto w-full pb-2 md:pb-0 scroll-hide justify-center">
+                                    {(localAtual?.tipo === 'Cidade' || localAtual?.tipo === 'Vila') && (
                                         <>
                                             <BtnCidade icone="🛒" label="Loja" onClick={() => setModal('loja')} disabled={monstros.length > 0} />
                                             <BtnCidade icone="📜" label="Guilda" onClick={abrirGuilda} disabled={monstros.length > 0} />
@@ -1573,6 +2088,37 @@
                                         </>
                                     )}
                                     <BtnCidade icone="🗺️" label="Viajar" onClick={() => setModal('mapa')} disabled={monstros.length > 0} />
+
+                                    {/* Botão de Teste (Remover depois) */}
+                                    <button
+                                        onClick={() => {
+                                            setJogador(p => ({
+                                                ...p,
+                                                ouro: 5000,
+                                                nivel: 10,
+                                                hp: p.maxHp + 50,
+                                                maxHp: p.maxHp + 50,
+                                                local: "Vila Verdejante"
+                                            }));
+                                            alert("MODO TESTE ATIVADO!\n- Nível 10\n- 5000 Ouro\n- Teleportado para Vila");
+                                        }}
+                                        className="flex items-center gap-2 bg-green-900/50 hover:bg-green-800 px-3 py-2 rounded-lg border border-green-600 text-sm font-bold text-green-200"
+                                        title="Cheat para Testes"
+                                    >
+                                        🛠️ TESTAR
+                                    </button>
+
+                                    {/* Botão de Masmorra (Se houver uma no local e não estiver nela) */}
+                                    {MASMORRAS.find(m => m.local === jogador.local) && !dungeonAtiva && (
+                                        <button
+                                            onClick={() => iniciarMasmorra(MASMORRAS.find(m => m.local === jogador.local))}
+                                            disabled={monstros.length > 0}
+                                            className={`flex items-center gap-2 bg-purple-900 hover:bg-purple-800 px-3 py-2 rounded-lg border border-purple-600 text-sm font-bold text-purple-200 shadow-[0_0_15px_rgba(147,51,234,0.3)] transition-all ${monstros.length > 0 ? 'opacity-50 cursor-not-allowed grayscale' : 'animate-pulse'}`}
+                                            title="Explorar Masmorra Perigosa"
+                                        >
+                                            <span className="text-lg">🗝️</span> <span className="hidden md:inline">MASMORRA</span>
+                                        </button>
+                                    )}
                                 </div>
                             </div>
 
@@ -1628,8 +2174,11 @@
                                             {/* Status Card e Controles */}
                                             <div className="flex-1 w-full md:w-auto md:ml-4 max-w-[300px] order-1 md:order-2">
                                                 <div className="bg-zinc-900/90 border border-amber-500/30 p-3 rounded-lg shadow-2xl backdrop-blur-sm mb-2">
-                                                    <div className="flex justify-between items-baseline mb-1">
-                                                        <span className="font-bold text-sm text-amber-500 truncate">{jogador.nome}</span>
+                                                    <div className="flex justify-between items-baseline mb-1 flex-wrap">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="font-bold text-sm text-amber-500 truncate">{jogador.nome}</span>
+                                                            {jogador.equipamento.pet && <span className="text-[9px] text-zinc-400 border border-zinc-700 px-1 rounded bg-black/30">🐾 {jogador.equipamento.pet.nome}</span>}
+                                                        </div>
                                                         <span className="text-[9px] text-zinc-400">Nvl {jogador.nivel}</span>
                                                     </div>
 
@@ -1688,6 +2237,12 @@
 
                                                     {/* Botoes de Ação */}
                                                     <div className="grid grid-cols-2 gap-2 md:gap-1 mt-2">
+                                                        {/* Capturar */}
+                                                        {jogador.inventario.some(i => i.id === 'jaula_simples') && (
+                                                            <button onClick={capturar} className="col-span-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 py-2 rounded-lg border border-zinc-600 font-bold text-xs flex items-center justify-center gap-2 mb-1">
+                                                                <span>🕸️</span> TENTAR CAPTURAR
+                                                            </button>
+                                                        )}
                                                         <button onClick={atacar} className="col-span-1 bg-red-600 hover:bg-red-500 text-white py-3 md:py-1.5 rounded-lg md:rounded font-bold text-sm md:text-xs shadow hover:shadow-red-500/20 transition-all active:scale-95 flex items-center justify-center gap-1 border-b-2 border-red-800">
                                                             <span>⚔️</span> ATACAR
                                                         </button>
@@ -1741,21 +2296,52 @@
 
                                         <div className="text-center space-y-4 relative z-10">
                                             {!ehCidade ? (
-                                                <button onClick={explorar} className="p-2 md:p-8 bg-zinc-800 hover:bg-zinc-700 rounded-full w-24 h-24 md:w-48 md:h-48 flex flex-col items-center justify-center gap-1 md:gap-2 border-4 border-zinc-600 hover:border-amber-500 transition-all hover:scale-105 group shadow-[0_0_30px_rgba(0,0,0,0.5)] flex-shrink-0">
-                                                    <span className="text-3xl md:text-5xl group-hover:rotate-12 transition-transform">🧭</span>
-                                                    <span className="font-bold text-[10px] md:text-xl tracking-widest text-zinc-300 group-hover:text-amber-400">EXPLORAR</span>
-                                                </button>
+                                                localAtual.tipo === 'Mina' ? (
+                                                    // Botão de Mineração em local de Mina
+                                                    <div className="flex gap-4">
+                                                        <button onClick={explorar} className="p-4 md:p-6 bg-zinc-800 hover:bg-red-900 rounded-2xl flex flex-col items-center justify-center gap-1 border-2 border-zinc-600 hover:border-red-500 transition-all shadow-lg group">
+                                                            <span className="text-2xl group-hover:scale-110">🗡️</span>
+                                                            <span className="font-bold text-xs text-zinc-300">LIMPAR ÁREA</span>
+                                                        </button>
+
+                                                        <button onClick={minerar} className="p-4 md:p-8 bg-zinc-800 hover:bg-stone-700 rounded-full w-24 h-24 md:w-48 md:h-48 flex flex-col items-center justify-center gap-1 md:gap-2 border-4 border-zinc-600 hover:border-stone-400 transition-all hover:scale-105 group shadow-[0_0_30px_rgba(0,0,0,0.5)]">
+                                                            <span className="text-3xl md:text-5xl group-hover:rotate-12 transition-transform">⛏️</span>
+                                                            <span className="font-bold text-[10px] md:text-xl tracking-widest text-zinc-300 group-hover:text-stone-200">MINERAR</span>
+                                                        </button>
+                                                    </div>
+                                                ) : (
+                                                    // Botão Explorar Padrão
+                                                    <button onClick={explorar} className="p-2 md:p-8 bg-zinc-800 hover:bg-zinc-700 rounded-full w-24 h-24 md:w-48 md:h-48 flex flex-col items-center justify-center gap-1 md:gap-2 border-4 border-zinc-600 hover:border-amber-500 transition-all hover:scale-105 group shadow-[0_0_30px_rgba(0,0,0,0.5)] flex-shrink-0">
+                                                        <span className="text-3xl md:text-5xl group-hover:rotate-12 transition-transform">🧭</span>
+                                                        <span className="font-bold text-[10px] md:text-xl tracking-widest text-zinc-300 group-hover:text-amber-400">EXPLORAR</span>
+                                                    </button>
+                                                )
                                             ) : (
                                                 <div className="glass-card p-6 rounded-2xl max-w-md border border-amber-500/20 bg-black/60 flex flex-col items-center">
                                                     <h3 className="text-xl font-fantasy text-amber-500 mb-2">Zona Segura</h3>
                                                     <p className="text-zinc-400 italic text-sm mb-4 text-center">Você está descansando na cidade. Visite as lojas ou a guilda.</p>
 
                                                     {/* Botão para caçar na cidade (Ratos, Ladrões) */}
-                                                    <button onClick={explorar} className="py-2 px-6 bg-zinc-800 hover:bg-red-900/40 border border-zinc-600 hover:border-red-500 rounded-lg flex items-center gap-2 group transition-all">
+                                                    <button onClick={explorar} className="mb-2 py-2 px-6 bg-zinc-800 hover:bg-red-900/40 border border-zinc-600 hover:border-red-500 rounded-lg flex items-center gap-2 group transition-all w-full justify-center">
                                                         <span className="text-xl group-hover:scale-110 transition-transform">🗡️</span>
                                                         <span className="font-bold text-zinc-300 group-hover:text-red-400">Explorar Arredores</span>
                                                     </button>
+
+                                                    {/* Botão Ferreiro (Novo) */}
+                                                    <button onClick={() => setModal('ferreiro')} className="mb-2 py-2 px-6 bg-zinc-800 hover:bg-orange-900/40 border border-zinc-600 hover:border-orange-500 rounded-lg flex items-center gap-2 group transition-all w-full justify-center">
+                                                        <span className="text-xl group-hover:scale-110 transition-transform">⚒️</span>
+                                                        <span className="font-bold text-zinc-300 group-hover:text-orange-400">Ferreiro</span>
+                                                    </button>
+
+                                                    {/* Botão Mina da Vila (Novo) */}
+                                                    {ehCidade && localAtual.nome === 'Vila Verdejante' && (
+                                                        <button onClick={minerar} className="py-2 px-6 bg-zinc-800 hover:bg-stone-700 border border-zinc-600 hover:border-stone-400 rounded-lg flex items-center gap-2 group transition-all w-full justify-center">
+                                                            <span className="text-xl group-hover:scale-110 transition-transform">⛏️</span>
+                                                            <span className="font-bold text-zinc-300 group-hover:text-stone-300">Mina Abandonada</span>
+                                                        </button>
+                                                    )}
                                                 </div>
+
                                             )}
                                         </div>
                                     </div>
@@ -1798,430 +2384,670 @@
                     </div>
 
                     {/* Modal Overlay Genérico (Mobile Fullscreen) */}
-                    {modal && modal !== 'levelup' && (
-                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-0 md:p-4 animate-fade-in text-white">
-                            <div className="bg-zinc-900/95 backdrop-blur-md md:rounded-xl border-0 md:border border-amber-500/30 w-full h-full md:h-auto md:max-w-2xl max-h-full md:max-h-[85vh] overflow-hidden flex flex-col shadow-2xl">
-                                {/* Modal Header */}
-                                <div className="flex justify-between items-center p-4 border-b border-white/10 bg-black/40">
-                                    <h3 className="text-xl font-fantasy text-amber-500 capitalize">{modal}</h3>
-                                    <button onClick={() => setModal(null)} className="text-zinc-400 hover:text-white p-2">✕</button>
-                                </div>
+                    {
+                        modal && modal !== 'levelup' && (
+                            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-0 md:p-4 animate-fade-in text-white">
+                                <div className="bg-zinc-900/95 backdrop-blur-md md:rounded-xl border-0 md:border border-amber-500/30 w-full h-full md:h-auto md:max-w-2xl max-h-full md:max-h-[85vh] overflow-hidden flex flex-col shadow-2xl">
+                                    {/* Modal Header */}
+                                    <div className="flex justify-between items-center p-4 border-b border-white/10 bg-black/40">
+                                        <h3 className="text-xl font-fantasy text-amber-500 capitalize">{modal}</h3>
+                                        <button onClick={() => setModal(null)} className="text-zinc-400 hover:text-white p-2">✕</button>
+                                    </div>
 
-                                {/* Modal Content */}
-                                <div className="p-4 md:p-6 overflow-y-auto flex-1">
-                                    {modal === 'campeonato' && (
-                                        <div className="text-center">
-                                            <div className="text-6xl mb-4">🏆</div>
-                                            <h2 className="text-3xl font-fantasy text-amber-500 mb-2">Grande Campeonato de {localAtual.nome}</h2>
-                                            <p className="text-zinc-400 mb-6 max-w-lg mx-auto">
-                                                Guerreiros de todo o reino se reúnem para provar seu valor.
-                                                Sobreviva a <strong>5 rodadas consecutivas</strong> contra gladiadores de elite para ganhar fama e fortuna!
-                                            </p>
+                                    {/* Modal Content */}
+                                    <div className="p-4 md:p-6 overflow-y-auto flex-1">
+                                        {modal === 'campeonato' && (
+                                            <div className="text-center">
+                                                <div className="text-6xl mb-4">🏆</div>
+                                                <h2 className="text-3xl font-fantasy text-amber-500 mb-2">Grande Campeonato de {localAtual.nome}</h2>
+                                                <p className="text-zinc-400 mb-6 max-w-lg mx-auto">
+                                                    Guerreiros de todo o reino se reúnem para provar seu valor.
+                                                    Sobreviva a <strong>5 rodadas consecutivas</strong> contra gladiadores de elite para ganhar fama e fortuna!
+                                                </p>
 
-                                            <div className="bg-black/30 p-4 rounded-xl border border-amber-900/30 mb-8 max-w-md mx-auto">
-                                                <h3 className="text-amber-200 font-bold mb-2">Prêmio do Campeão</h3>
-                                                <div className="flex justify-center gap-8 text-sm">
-                                                    <div className="flex flex-col items-center">
-                                                        <span className="text-2xl">💰</span>
-                                                        <span className="text-yellow-400 font-bold">{500 * jogador.nivel} Ouro</span>
+                                                <div className="bg-black/30 p-4 rounded-xl border border-amber-900/30 mb-8 max-w-md mx-auto">
+                                                    <h3 className="text-amber-200 font-bold mb-2">Prêmio do Campeão</h3>
+                                                    <div className="flex justify-center gap-8 text-sm">
+                                                        <div className="flex flex-col items-center">
+                                                            <span className="text-2xl">💰</span>
+                                                            <span className="text-yellow-400 font-bold">{500 * jogador.nivel} Ouro</span>
+                                                        </div>
+                                                        <div className="flex flex-col items-center">
+                                                            <span className="text-2xl">✨</span>
+                                                            <span className="text-purple-400 font-bold">{200 * jogador.nivel} XP</span>
+                                                        </div>
                                                     </div>
-                                                    <div className="flex flex-col items-center">
-                                                        <span className="text-2xl">✨</span>
-                                                        <span className="text-purple-400 font-bold">{200 * jogador.nivel} XP</span>
-                                                    </div>
+                                                </div>
+
+                                                <button onClick={iniciarCampeonato} className="px-8 py-3 bg-gradient-to-r from-amber-700 to-amber-500 hover:from-amber-600 hover:to-amber-400 text-black font-bold rounded-xl text-lg shadow-[0_0_20px_rgba(245,158,11,0.4)] transition-transform hover:scale-105 border-2 border-amber-300">
+                                                    ENTRAR NA ARENA
+                                                </button>
+                                                <div className="mt-4">
+                                                    <button onClick={() => setModal(null)} className="text-zinc-500 hover:text-white underline text-sm">Talvez mais tarde...</button>
                                                 </div>
                                             </div>
+                                        )}
 
-                                            <button onClick={iniciarCampeonato} className="px-8 py-3 bg-gradient-to-r from-amber-700 to-amber-500 hover:from-amber-600 hover:to-amber-400 text-black font-bold rounded-xl text-lg shadow-[0_0_20px_rgba(245,158,11,0.4)] transition-transform hover:scale-105 border-2 border-amber-300">
-                                                ENTRAR NA ARENA
-                                            </button>
-                                            <div className="mt-4">
-                                                <button onClick={() => setModal(null)} className="text-zinc-500 hover:text-white underline text-sm">Talvez mais tarde...</button>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {modal === 'loja' && (
-                                        <div>
-                                            <h2 className="text-2xl font-fantasy text-amber-500 mb-6 flex items-center gap-2">🛒 Mercado Local <span className="text-sm text-zinc-400 font-sans ml-auto">Seu Ouro: {jogador.ouro}</span></h2>
-                                            <div className="grid gap-3">
-                                                {ITENS_LOJA.filter(i => !i.classe || i.classe === jogador.classe || i.tipo === 'Consumivel').map(item => (
-                                                    <div key={item.id} className="flex justify-between items-center p-3 bg-white/5 rounded-lg border border-white/5 hover:border-amber-500/50">
-                                                        <div>
-                                                            <div className="font-bold text-amber-100">{item.nome}</div>
-                                                            <div className="text-xs text-zinc-500">{item.desc}</div>
-                                                        </div>
-                                                        <button onClick={() => comprarItem(item)} className="bg-green-700 hover:bg-green-600 px-4 py-2 rounded font-bold text-sm">Comprar {item.preco}💰</button>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {modal === 'guilda' && (
-                                        <div>
-                                            <h2 className="text-2xl font-fantasy text-amber-500 mb-6">📜 Guilda de Aventureiros (Rank {jogador.rankGuilda})</h2>
-                                            {jogador.missaoAtiva ? (
-                                                <div className="text-center p-8 bg-blue-900/20 rounded-xl border border-blue-500/30">
-                                                    <h3 className="text-xl mb-2">Missão em Progresso</h3>
-                                                    <p className="text-blue-300 font-bold text-lg">{jogador.missaoAtiva.titulo}</p>
-                                                    <p className="text-zinc-400 mb-4">{jogador.missaoAtiva.desc}</p>
-                                                    <p>Progresso: {jogador.missaoAtiva.atual}/{jogador.missaoAtiva.req}</p>
-
-                                                    {jogador.missaoAtiva.atual >= jogador.missaoAtiva.req ? (
-                                                        <button
-                                                            onClick={() => {
-                                                                if (jogador.missaoAtiva.tipo === 'evolucao') {
-                                                                    const novaClasse = EVOLUCOES[jogador.classe];
-                                                                    setJogador(p => ({
-                                                                        ...p,
-                                                                        classe: novaClasse,
-                                                                        classeEvoluida: true,
-                                                                        missaoAtiva: null,
-                                                                        ouro: p.ouro + 1000,
-                                                                        maxHp: p.maxHp + 50, // Bonus evolução
-                                                                        hp: p.maxHp + 50,
-                                                                        maxMana: p.maxMana + 20,
-                                                                        mana: p.maxMana + 20
-                                                                    }));
-                                                                    addLog(`VOCÊ EVOLUIU PARA ${novaClasse.toUpperCase()}!`, 'sucesso');
-                                                                    alert(`Parabéns! Você alcançou o nível supremo e se tornou um ${novaClasse}!`);
-                                                                } else {
-                                                                    // Missão Normal
-                                                                    // Check Rank Up
-                                                                    const rankAtualIdx = RANKS_GUILDA.indexOf(jogador.rankGuilda);
-                                                                    const missoesNecessarias = REQUISITOS_RANK[rankAtualIdx] || 9999;
-                                                                    let novoRank = jogador.rankGuilda;
-                                                                    let msgRank = "";
-
-                                                                    if (jogador.missoesCompletas + 1 >= missoesNecessarias) {
-                                                                        if (rankAtualIdx < RANKS_GUILDA.length - 1) {
-                                                                            novoRank = RANKS_GUILDA[rankAtualIdx + 1];
-                                                                            msgRank = ` SUBIU DE RANK: ${novoRank}!`;
-                                                                            // Resetar missões disponíveis para gerar novas do rank novo
-                                                                            setMissoesDisponiveis([]);
-                                                                        }
-                                                                    }
-
-                                                                    setJogador(p => ({
-                                                                        ...p,
-                                                                        ouro: p.ouro + p.missaoAtiva.ouro,
-                                                                        xp: p.xp + p.missaoAtiva.xp,
-                                                                        missoesCompletas: p.missoesCompletas + 1,
-                                                                        rankGuilda: novoRank,
-                                                                        missaoAtiva: null
-                                                                    }));
-                                                                    addLog(`Missão entregue! Recebeu ${jogador.missaoAtiva.ouro} ouro e ${jogador.missaoAtiva.xp} XP.${msgRank}`, 'sucesso');
-                                                                }
-                                                            }}
-                                                            className="mt-4 bg-green-600 hover:bg-green-500 text-white font-bold py-2 px-6 rounded-lg animate-pulse w-full"
-                                                        >
-                                                            COMPLETAR MISSÃO
-                                                        </button>
-                                                    ) : (
-                                                        <button
-                                                            onClick={cancelarMissao}
-                                                            className="mt-4 bg-red-900/50 hover:bg-red-700 text-red-200 border border-red-800 font-bold py-2 px-6 rounded-lg w-full text-xs"
-                                                        >
-                                                            CANCELAR MISSÃO
-                                                        </button>
-                                                    )}
-
-                                                </div>
-                                            ) : (
-                                                <div className="grid gap-4">
-                                                    {/* Progress Bar do Rank */}
-                                                    {RANKS_GUILDA.indexOf(jogador.rankGuilda) < RANKS_GUILDA.length - 1 && (
-                                                        <div className="bg-black/30 p-3 rounded-lg border border-amber-900/30">
-                                                            <div className="flex justify-between text-xs text-zinc-400 mb-1">
-                                                                <span>Progresso para Rank {RANKS_GUILDA[RANKS_GUILDA.indexOf(jogador.rankGuilda) + 1]}</span>
-                                                                <span>{jogador.missoesCompletas} / {REQUISITOS_RANK[RANKS_GUILDA.indexOf(jogador.rankGuilda)]}</span>
-                                                            </div>
-                                                            <div className="h-2 bg-black rounded-full overflow-hidden">
-                                                                <div className="h-full bg-amber-600" style={{ width: `${Math.min(100, (jogador.missoesCompletas / REQUISITOS_RANK[RANKS_GUILDA.indexOf(jogador.rankGuilda)]) * 100)}%` }}></div>
-                                                            </div>
-                                                        </div>
-                                                    )}
-
-                                                    {/* Lista de Missões */}
-                                                    {missoesDisponiveis.map(m => (
-                                                        <div key={m.id} className="p-4 bg-white/5 rounded-xl border-l-4 border-amber-500">
-                                                            <h4 className="font-bold text-lg">{m.titulo} <span className="text-xs bg-amber-900 px-2 py-0.5 rounded ml-2">Rank {m.rank}</span></h4>
-                                                            <p className="text-zinc-400 text-sm mb-3">{m.desc}</p>
-                                                            <div className="flex justify-between items-center">
-                                                                <div className="text-xs text-amber-300">Recompensa: {m.ouro} ouro, {m.xp} XP</div>
-                                                                <button onClick={() => aceitarMissao(m)} className="bg-amber-600 hover:bg-amber-500 text-black font-bold px-4 py-2 rounded text-sm">Aceitar Contrato</button>
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-
-                                    {modal === 'academia' && (
-                                        <div>
-                                            <h2 className="text-2xl font-fantasy text-amber-500 mb-6">📜 Mestre de Habilidades</h2>
-                                            <p className="text-zinc-400 mb-4 text-sm">Treine técnicas exclusivas para {jogador.classe}.</p>
-                                            <div className="grid gap-3">
-                                                {HABILIDADES_LOJA.filter(h => h.classe === jogador.classe).length === 0 ? (
-                                                    <p className="text-zinc-500 italic">Nenhuma habilidade disponível para sua classe no momento.</p>
-                                                ) : (
-                                                    HABILIDADES_LOJA.filter(h => h.classe === jogador.classe || h.classe === 'Todas').map(habilidade => (
-                                                        <div key={habilidade.id} className="flex justify-between items-center p-3 bg-white/5 rounded-lg border border-white/5 hover:border-amber-500/30 transition-colors">
-                                                            <div>
-                                                                <div className="font-bold text-blue-200">{habilidade.nome}</div>
-                                                                <div className="text-xs text-zinc-500">{habilidade.desc}</div>
-                                                                <div className="text-[10px] text-amber-400 font-mono mt-1">
-                                                                    Dano: {habilidade.poder} | Custo: {habilidade.mana} {CLASSES[jogador.classe]?.recurso.nome || 'MP'} | Tipo: {habilidade.tipo}
-                                                                </div>
-                                                            </div>
-                                                            {jogador.magias.some(m => m.id === habilidade.id) ? (
-                                                                <span className="text-green-500 text-xs font-bold px-3 py-2">APRENDIDO</span>
-                                                            ) : (
-                                                                <button onClick={() => aprenderHabilidade(habilidade)} className="bg-blue-700 hover:bg-blue-600 px-4 py-2 rounded font-bold text-sm transition-colors">
-                                                                    Aprender {habilidade.custo}💰
-                                                                </button>
-                                                            )}
-                                                        </div>
-                                                    ))
-                                                )}
-                                            </div>
-                                        </div>
-                                    )}
-
-
-
-                                    {modal === 'taverna' && (
-                                        <div>
-                                            <h2 className="text-2xl font-fantasy text-amber-500 mb-6">🍺 Taverna do Javali</h2>
-                                            <div className="bg-amber-900/20 p-6 rounded-xl border border-amber-500/30 text-center mb-6">
-                                                <p className="text-xl mb-4 italic">"Bem-vindo, viajante! Sente-se, a lareira está quente."</p>
-                                                <div className="grid grid-cols-2 gap-4">
-                                                    <button onClick={() => acaoTaverna('bebida')} className="p-4 bg-amber-800 hover:bg-amber-700 rounded-xl border border-amber-600 transition-all hover:scale-105">
-                                                        <div className="text-4xl mb-2">🍺</div>
-                                                        <div className="font-bold">Beber Uma</div>
-                                                        <div className="text-sm text-yellow-300">Custo: {1 + jogador.nivel}💰</div>
-                                                        <div className="text-xs text-zinc-400 mt-1">Recupera um pouco de {CLASSES[jogador.classe]?.recurso.nome || 'Recurso'}</div>
-                                                    </button>
-                                                    <button onClick={() => acaoTaverna('descanso')} className="p-4 bg-blue-900 hover:bg-blue-800 rounded-xl border border-blue-600 transition-all hover:scale-105">
-                                                        <div className="text-4xl mb-2">🛏️</div>
-                                                        <div className="font-bold">Pernoitar</div>
-                                                        <div className="text-sm text-yellow-300">Custo: {14 + jogador.nivel}💰</div>
-                                                        <div className="text-xs text-zinc-400 mt-1">Recupera TODA Vida e {CLASSES[jogador.classe]?.recurso.nome || 'Recurso'}</div>
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {modal === 'mapa' && (
-                                        <div className="h-full flex flex-col justify-center overflow-y-auto">
-                                            <h2 className="text-2xl font-fantasy text-amber-500 mb-4 flex-shrink-0 text-center">🗺️ Mapa do Reino</h2>
-
-                                            {/* Map Container - Responsive */}
-                                            <div className="relative w-full max-w-4xl rounded-xl overflow-hidden border-2 border-amber-900/50 bg-stone-900 group shadow-2xl mx-auto flex-shrink-0">
-
-                                                {/* Map Image - Tag img for correct aspect ratio */}
-                                                <img
-                                                    src="./assets/mapa.png?v=5"
-                                                    alt="Mapa do Mundo"
-                                                    className="w-full h-auto block opacity-50 grayscale group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-1000"
-                                                />
-
-                                                {/* Locations Pins - Absolute positioned over image */}
-                                                <div className="absolute inset-0">
-                                                    {LOCAIS_FIXOS.map(local => {
-                                                        const isCurrent = local.nome === jogador.local;
-                                                        return (
-                                                            <button
-                                                                key={local.nome}
-                                                                onClick={() => viajar(local)}
-                                                                disabled={isCurrent}
-                                                                style={{ left: `${local.x}%`, top: `${local.y}%` }}
-                                                                className={`absolute transform -translate-x-1/2 -translate-y-1/2 transition-all duration-300 z-10 w-8 h-8 flex items-center justify-center rounded-full border-2 shadow-[0_0_15px_rgba(0,0,0,0.8)] group/pin
-                                                                        ${isCurrent
-                                                                        ? 'bg-amber-600 border-amber-300 scale-110 cursor-default animate-pulse'
-                                                                        : 'bg-zinc-800 border-zinc-600 hover:bg-amber-700 hover:border-amber-400 hover:scale-125'}`}
-                                                            >
-                                                                <span className="text-sm">
-                                                                    {local.tipo === 'Cidade' ? '🏰' :
-                                                                        local.tipo === 'Vila' ? '🏠' :
-                                                                            local.tipo === 'Pântano' ? '☣️' :
-                                                                                local.nome === 'Floresta Sombria' ? '☠️' :
-                                                                                    local.tipo === 'Floresta' ? '🌲' :
-                                                                                        local.tipo === 'Montanha' ? '🏔️' : '📍'}
-                                                                </span>
-
-                                                                {/* Tooltip */}
-                                                                <div className="absolute bottom-full mb-2 bg-black/90 text-amber-100 text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover/pin:opacity-100 pointer-events-none border border-amber-500/30 transition-opacity z-20">
-                                                                    <div className="font-bold">{local.nome}</div>
-                                                                    <div className="text-zinc-400 text-[10px]">{local.tipo}</div>
-                                                                    <div className="text-yellow-400 text-[10px]">Custo: {20 + (jogador.nivel * 5)} 💰</div>
-                                                                </div>
-                                                            </button>
-                                                        );
-                                                    })}
-                                                </div>
-                                            </div>
-                                            <div className="mt-4 text-center text-sm text-zinc-400 flex-shrink-0">
-                                                Clique em um local para viajar • O local atual está pulsando em laranja
-                                            </div>
-                                        </div>
-                                    )}
-                                    {modal === 'inventario' && (
-                                        <div>
-                                            <h2 className="text-2xl font-fantasy text-amber-500 mb-6">🎒 Inventário & Equipamentos</h2>
-
-                                            {/* Equipados */}
-                                            <div className="mb-6 p-4 bg-zinc-800/50 rounded-xl border border-zinc-700">
-                                                <h3 className="text-zinc-400 text-sm uppercase font-bold mb-3">Equipado</h3>
-                                                <div className="grid grid-cols-3 gap-2">
-                                                    {['arma', 'armadura', 'acessorio'].map(slot => (
-                                                        <div key={slot} className="relative group">
-                                                            <div className={`p-3 rounded-lg border flex flex-col items-center justify-center h-24 text-center ${jogador.equipamento[slot] ? 'bg-amber-900/20 border-amber-500/50' : 'bg-black/20 border-white/5'}`}>
-                                                                {jogador.equipamento[slot] ? (
-                                                                    <>
-                                                                        <div className="font-bold text-amber-100 text-xs sm:text-sm">{jogador.equipamento[slot].nome}</div>
-                                                                        <button onClick={() => desequipar(slot)} className="absolute -top-2 -right-2 bg-red-600 text-white w-6 h-6 rounded-full text-xs shadow-lg hover:scale-110 opacity-0 group-hover:opacity-100 transition-all">✕</button>
-                                                                    </>
-                                                                ) : (
-                                                                    <div className="text-zinc-600 text-xs uppercase">{slot}</div>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-
-                                            {/* Mochila */}
+                                        {modal === 'loja' && (
                                             <div>
-                                                <h3 className="text-zinc-400 text-sm uppercase font-bold mb-3">Na Mochila ({jogador.inventario.length} itens)</h3>
-                                                {jogador.inventario.length === 0 ? (
-                                                    <div className="text-zinc-500 italic text-center py-8">Sua mochila está vazia.</div>
-                                                ) : (
-                                                    <div className="grid sm:grid-cols-2 gap-2">
-                                                        {jogador.inventario.map(item => (
-                                                            <div key={item.uid} className="flex justify-between items-center p-2 bg-white/5 rounded border border-white/5 hover:border-amber-500/30 group">
-                                                                <div>
-                                                                    <div className="font-bold text-zinc-200">{item.nome}</div>
-                                                                    <div className="text-[10px] text-zinc-500">{item.tipo}</div>
+                                                <h2 className="text-2xl font-fantasy text-amber-500 mb-6 flex items-center gap-2">🛒 Mercado Local <span className="text-sm text-zinc-400 font-sans ml-auto">Seu Ouro: {jogador.ouro}</span></h2>
+
+                                                {/* Consumíveis */}
+                                                <h3 className="text-zinc-400 text-sm font-bold uppercase mb-2 border-b border-white/10 pb-1">Poções & Utilitários</h3>
+                                                <div className="grid gap-3 mb-6">
+                                                    {ITENS_LOJA.filter(i => i.tipo === 'Consumivel').map(item => (
+                                                        <div key={item.id} className="flex justify-between items-center p-3 bg-white/5 rounded-lg border border-white/5 hover:border-amber-500/50">
+                                                            <div>
+                                                                <div className="font-bold text-amber-100">{item.nome}</div>
+                                                                <div className="text-xs text-zinc-500">{item.desc}</div>
+                                                            </div>
+                                                            <button onClick={() => comprarItem(item)} className="bg-green-700 hover:bg-green-600 px-4 py-2 rounded font-bold text-sm">Comprar {item.preco}💰</button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+
+                                                {/* Ferramentas (Picaretas) */}
+                                                <h3 className="text-zinc-400 text-sm font-bold uppercase mb-2 border-b border-white/10 pb-1">Ferramentas</h3>
+                                                <div className="grid gap-3 mb-6">
+                                                    {ITENS_LOJA.filter(i => i.tipo === 'Ferramenta').map(item => (
+                                                        <div key={item.id} className="flex justify-between items-center p-3 bg-stone-900/40 rounded-lg border border-stone-500/30 hover:border-stone-500/50">
+                                                            <div>
+                                                                <div className="font-bold text-stone-300">{item.nome}</div>
+                                                                <div className="text-xs text-zinc-500">{item.desc}</div>
+                                                            </div>
+                                                            <button onClick={() => comprarItem(item)} className="bg-stone-700 hover:bg-stone-600 px-4 py-2 rounded font-bold text-sm">Comprar {item.preco}💰</button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+
+                                                {/* Pets */}
+                                                <h3 className="text-zinc-400 text-sm font-bold uppercase mb-2 border-b border-white/10 pb-1">Pets & Companheiros 🐾</h3>
+                                                <div className="grid gap-3 mb-6">
+                                                    {ITENS_LOJA.filter(i => i.tipo === 'Pet').map(item => (
+                                                        <div key={item.id} className="flex justify-between items-center p-3 bg-purple-900/10 rounded-lg border border-purple-500/20 hover:border-purple-500/50">
+                                                            <div>
+                                                                <div className="font-bold text-purple-200">{item.nome}</div>
+                                                                <div className="text-xs text-zinc-400">{item.desc}</div>
+                                                                <div className="text-xs text-amber-500 font-bold mt-1">
+                                                                    {item.bonus?.dano ? `+${item.bonus.dano} Dano` : ''}
+                                                                    {item.bonus?.cura ? `+${item.bonus.cura} Cura` : ''}
+                                                                    {item.bonus?.critico ? `+${item.bonus.critico}% Crít` : ''}
                                                                 </div>
-                                                                <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                                                                    {item.tipo === 'Consumivel' ? (
-                                                                        <button onClick={() => usarItem(item)} className="px-3 py-1 bg-green-700 hover:bg-green-600 rounded text-xs font-bold">Usar</button>
-                                                                    ) : (
-                                                                        <button onClick={() => equiparItem(item)} className="px-3 py-1 bg-blue-700 hover:bg-blue-600 rounded text-xs font-bold">Equipar</button>
-                                                                    )}
+                                                            </div>
+                                                            <button onClick={() => comprarItem(item)} className="bg-purple-700 hover:bg-purple-600 px-4 py-2 rounded font-bold text-sm">Adotar {item.preco}💰</button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+
+                                                {/* Equipamentos */}
+                                                <h3 className="text-zinc-400 text-sm font-bold uppercase mb-2 border-b border-white/10 pb-1">Equipamentos de {jogador.classe}</h3>
+                                                <div className="grid gap-3">
+                                                    {ITENS_LOJA.filter(i => i.classe === jogador.classe).map(item => (
+                                                        <div key={item.id} className="flex justify-between items-center p-3 bg-white/5 rounded-lg border border-white/5 hover:border-amber-500/50">
+                                                            <div>
+                                                                <div className="font-bold text-amber-100">{item.nome}</div>
+                                                                <div className="text-xs text-zinc-500">{item.desc}</div>
+                                                                {/* Mostrar stats */}
+                                                                <div className="text-xs text-zinc-400 mt-1">
+                                                                    {Object.entries(item.bonus || {}).map(([key, val]) => `${key.charAt(0).toUpperCase() + key.slice(1)}: +${val} `)}
+                                                                </div>
+                                                            </div>
+                                                            <button onClick={() => comprarItem(item)} className="bg-blue-700 hover:bg-blue-600 px-4 py-2 rounded font-bold text-sm">Comprar {item.preco}💰</button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+
+                                            </div>
+                                        )}
+
+                                        {modal === 'ferreiro' && (
+                                            <div>
+                                                <h2 className="text-2xl font-fantasy text-orange-500 mb-6 flex items-center gap-2">⚒️ A Forja <span className="text-sm text-zinc-400 font-sans ml-auto">Ouro: {jogador.ouro}</span></h2>
+
+                                                {/* Seção Melhorar */}
+                                                <div className="mb-8">
+                                                    <h3 className="text-orange-300 border-b border-orange-500/30 pb-2 mb-4 font-bold">Melhorar Equipamento</h3>
+                                                    <div className="grid gap-3">
+                                                        {Object.entries(jogador.equipamento).filter(([_, item]) => item).map(([slot, item]) => {
+                                                            const nivelAtual = parseInt(item.nome.match(/\+(\d+)/)?.[1] || 0);
+                                                            const custoOuro = (nivelAtual + 1) * 250;
+                                                            // Simplificação: Requer Minério de Ferro para até +3, Mithril até +5...
+                                                            const minerioReq = nivelAtual < 3 ? 'minerio_ferro' : 'minerio_mithril';
+                                                            const qtdMinerio = (nivelAtual + 1) * 2;
+
+                                                            const temOuro = jogador.ouro >= custoOuro;
+                                                            const temMinerio = (jogador.inventario.filter(i => i.id === minerioReq).length >= qtdMinerio);
+
+                                                            const minerioNome = ITENS_LOJA.find(i => i.id === minerioReq)?.nome || minerioReq;
+
+                                                            return (
+                                                                <div key={slot} className="flex justify-between items-center p-3 bg-white/5 rounded-lg border border-white/5">
+                                                                    <div>
+                                                                        <div className="font-bold text-zinc-200">{item.nome}</div>
+                                                                        <div className="text-xs text-zinc-500 capitalize">{slot}</div>
+                                                                    </div>
+                                                                    <div className="text-right">
+                                                                        <div className="text-xs text-zinc-400 mb-1">
+                                                                            Custo: <span className={temOuro ? 'text-yellow-400' : 'text-red-500'}>{custoOuro}g</span> +
+                                                                            <span className={temMinerio ? 'text-stone-300' : 'text-red-500'}> {qtdMinerio}x {minerioNome}</span>
+                                                                        </div>
+                                                                        <button
+                                                                            disabled={!temOuro || !temMinerio}
+                                                                            onClick={() => {
+                                                                                setJogador(p => {
+                                                                                    // Consome Ouro
+                                                                                    let novoOuro = p.ouro - custoOuro;
+
+                                                                                    // Consome Minérios
+                                                                                    let inv = [...p.inventario];
+                                                                                    for (let k = 0; k < qtdMinerio; k++) {
+                                                                                        const idx = inv.findIndex(i => i.id === minerioReq);
+                                                                                        if (idx > -1) inv.splice(idx, 1);
+                                                                                    }
+
+                                                                                    // Atualiza Item
+                                                                                    const novoNivel = nivelAtual + 1;
+                                                                                    const nomeBase = item.nome.replace(/\s\+\d+$/, '');
+                                                                                    const novoNome = `${nomeBase} +${novoNivel}`;
+
+                                                                                    // Buff Stats (+10% base stats approx + 1 flat)
+                                                                                    const novoBonus = { ...item.bonus };
+                                                                                    Object.keys(novoBonus).forEach(k => {
+                                                                                        if (novoBonus[k] > 0) novoBonus[k] = Math.ceil(novoBonus[k] * 1.1) + 1;
+                                                                                    });
+
+                                                                                    const novoItem = { ...item, nome: novoNome, bonus: novoBonus };
+
+                                                                                    // Recalcula Status (Necessário pois o useEffect/equiparItem não roda aqui)
+                                                                                    const resAntiga = item.bonus?.resistencia || 0;
+                                                                                    const resNova = novoBonus.resistencia || 0;
+                                                                                    const deltaRes = resNova - resAntiga;
+
+                                                                                    return {
+                                                                                        ...p,
+                                                                                        ouro: novoOuro,
+                                                                                        inventario: inv,
+                                                                                        equipamento: { ...p.equipamento, [slot]: novoItem },
+                                                                                        maxHp: p.maxHp + (deltaRes * 5),
+                                                                                        maxMana: p.maxMana + (deltaRes * 5),
+                                                                                        hp: p.hp + (deltaRes * 5),
+                                                                                        mana: p.mana + (deltaRes * 5)
+                                                                                    };
+                                                                                });
+                                                                                addLog(`🔨 Melhorou ${item.nome}!`, 'sucesso');
+                                                                            }}
+                                                                            className={`px-4 py-2 rounded font-bold text-sm ${(!temOuro || !temMinerio) ? 'bg-zinc-700 text-zinc-500 cursor-not-allowed' : 'bg-orange-700 hover:bg-orange-600 text-white'}`}
+                                                                        >
+                                                                            Melhorar (+{nivelAtual + 1})
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                        {Object.keys(jogador.equipamento).every(k => !jogador.equipamento[k]) && <p className="text-zinc-500 italic">Nada equipado.</p>}
+                                                    </div>
+                                                </div>
+
+                                                {/* Seção Forjar */}
+                                                <div>
+                                                    <h3 className="text-orange-300 border-b border-orange-500/30 pb-2 mb-4 font-bold">Forjar Novos Itens</h3>
+                                                    <div className="grid gap-3">
+                                                        {RECEITAS.map(receita => {
+                                                            const temOuro = jogador.ouro >= receita.custo;
+                                                            // Verifica materiais
+                                                            const checkMateriais = receita.inputs.map(req => {
+                                                                const count = jogador.inventario.filter(i => i.id === req.id).length;
+                                                                const reqNome = ITENS_LOJA.find(x => x.id === req.id)?.nome || req.id;
+                                                                return { ...req, count, ok: count >= req.qtd, nome: reqNome };
+                                                            });
+                                                            const temMateriais = checkMateriais.every(m => m.ok);
+
+                                                            return (
+                                                                <div key={receita.id} className="p-3 bg-white/5 rounded-lg border border-white/5">
+                                                                    <div className="flex justify-between items-start mb-2">
+                                                                        <div className="font-bold text-amber-100">{receita.resultado.nome}</div>
+                                                                        <div className={temOuro ? 'text-yellow-400 font-bold' : 'text-red-500'}>{receita.custo}g</div>
+                                                                    </div>
+                                                                    <div className="text-xs text-zinc-400 mb-2">{receita.resultado.desc}</div>
+
+                                                                    {/* Lista de Materiais */}
+                                                                    <div className="flex flex-wrap gap-2 mb-3">
+                                                                        {checkMateriais.map((mat, idx) => (
+                                                                            <span key={idx} className={`text-xs px-2 py-1 rounded ${mat.ok ? 'bg-green-900/30 text-green-400' : 'bg-red-900/30 text-red-400'}`}>
+                                                                                {mat.count}/{mat.qtd} {mat.nome}
+                                                                            </span>
+                                                                        ))}
+                                                                    </div>
+
+                                                                    <button
+                                                                        disabled={!temOuro || !temMateriais}
+                                                                        onClick={() => {
+                                                                            setJogador(p => {
+                                                                                let novoOuro = p.ouro - receita.custo;
+                                                                                let inv = [...p.inventario];
+
+                                                                                receita.inputs.forEach(req => {
+                                                                                    for (let k = 0; k < req.qtd; k++) {
+                                                                                        const idx = inv.findIndex(x => x.id === req.id);
+                                                                                        if (idx > -1) inv.splice(idx, 1);
+                                                                                    }
+                                                                                });
+
+                                                                                inv.push({ ...receita.resultado, uid: Date.now() });
+
+                                                                                return { ...p, ouro: novoOuro, inventario: inv };
+                                                                            });
+                                                                            addLog(`⚒️ Forjou ${receita.resultado.nome}!`, 'sucesso');
+                                                                        }}
+                                                                        className={`w-full py-2 rounded font-bold text-sm ${(!temOuro || !temMateriais) ? 'bg-zinc-700 text-zinc-500 cursor-not-allowed' : 'bg-gradient-to-r from-orange-700 to-red-700 hover:brightness-110 text-white'}`}
+                                                                    >
+                                                                        Forjar Item
+                                                                    </button>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+
+                                            </div>
+                                        )}
+
+                                        {modal === 'guilda' && (
+                                            <div>
+                                                <h2 className="text-2xl font-fantasy text-amber-500 mb-6">📜 Guilda de Aventureiros (Rank {jogador.rankGuilda})</h2>
+                                                {jogador.missaoAtiva ? (
+                                                    <div className="text-center p-8 bg-blue-900/20 rounded-xl border border-blue-500/30">
+                                                        <h3 className="text-xl mb-2">Missão em Progresso</h3>
+                                                        <p className="text-blue-300 font-bold text-lg">{jogador.missaoAtiva.titulo}</p>
+                                                        <p className="text-zinc-400 mb-4">{jogador.missaoAtiva.desc}</p>
+                                                        <p>Progresso: {jogador.missaoAtiva.atual}/{jogador.missaoAtiva.req}</p>
+
+                                                        {jogador.missaoAtiva.atual >= jogador.missaoAtiva.req ? (
+                                                            <button
+                                                                onClick={() => {
+                                                                    if (jogador.missaoAtiva.tipo === 'evolucao') {
+                                                                        const novaClasse = EVOLUCOES[jogador.classe];
+                                                                        setJogador(p => ({
+                                                                            ...p,
+                                                                            classe: novaClasse,
+                                                                            classeEvoluida: true,
+                                                                            missaoAtiva: null,
+                                                                            ouro: p.ouro + 1000,
+                                                                            maxHp: p.maxHp + 50, // Bonus evolução
+                                                                            hp: p.maxHp + 50,
+                                                                            maxMana: p.maxMana + 20,
+                                                                            mana: p.maxMana + 20
+                                                                        }));
+                                                                        addLog(`VOCÊ EVOLUIU PARA ${novaClasse.toUpperCase()}!`, 'sucesso');
+                                                                        alert(`Parabéns! Você alcançou o nível supremo e se tornou um ${novaClasse}!`);
+                                                                    } else {
+                                                                        // Missão Normal
+                                                                        // Check Rank Up
+                                                                        const rankAtualIdx = RANKS_GUILDA.indexOf(jogador.rankGuilda);
+                                                                        const missoesNecessarias = REQUISITOS_RANK[rankAtualIdx] || 9999;
+                                                                        let novoRank = jogador.rankGuilda;
+                                                                        let msgRank = "";
+
+                                                                        if (jogador.missoesCompletas + 1 >= missoesNecessarias) {
+                                                                            if (rankAtualIdx < RANKS_GUILDA.length - 1) {
+                                                                                novoRank = RANKS_GUILDA[rankAtualIdx + 1];
+                                                                                msgRank = ` SUBIU DE RANK: ${novoRank}!`;
+                                                                                // Resetar missões disponíveis para gerar novas do rank novo
+                                                                                setMissoesDisponiveis([]);
+                                                                            }
+                                                                        }
+
+                                                                        setJogador(p => ({
+                                                                            ...p,
+                                                                            ouro: p.ouro + p.missaoAtiva.ouro,
+                                                                            xp: p.xp + p.missaoAtiva.xp,
+                                                                            missoesCompletas: p.missoesCompletas + 1,
+                                                                            rankGuilda: novoRank,
+                                                                            missaoAtiva: null
+                                                                        }));
+                                                                        addLog(`Missão entregue! Recebeu ${jogador.missaoAtiva.ouro} ouro e ${jogador.missaoAtiva.xp} XP.${msgRank}`, 'sucesso');
+                                                                    }
+                                                                }}
+                                                                className="mt-4 bg-green-600 hover:bg-green-500 text-white font-bold py-2 px-6 rounded-lg animate-pulse w-full"
+                                                            >
+                                                                COMPLETAR MISSÃO
+                                                            </button>
+                                                        ) : (
+                                                            <button
+                                                                onClick={cancelarMissao}
+                                                                className="mt-4 bg-red-900/50 hover:bg-red-700 text-red-200 border border-red-800 font-bold py-2 px-6 rounded-lg w-full text-xs"
+                                                            >
+                                                                CANCELAR MISSÃO
+                                                            </button>
+                                                        )}
+
+                                                    </div>
+                                                ) : (
+                                                    <div className="grid gap-4">
+                                                        {/* Progress Bar do Rank */}
+                                                        {RANKS_GUILDA.indexOf(jogador.rankGuilda) < RANKS_GUILDA.length - 1 && (
+                                                            <div className="bg-black/30 p-3 rounded-lg border border-amber-900/30">
+                                                                <div className="flex justify-between text-xs text-zinc-400 mb-1">
+                                                                    <span>Progresso para Rank {RANKS_GUILDA[RANKS_GUILDA.indexOf(jogador.rankGuilda) + 1]}</span>
+                                                                    <span>{jogador.missoesCompletas} / {REQUISITOS_RANK[RANKS_GUILDA.indexOf(jogador.rankGuilda)]}</span>
+                                                                </div>
+                                                                <div className="h-2 bg-black rounded-full overflow-hidden">
+                                                                    <div className="h-full bg-amber-600" style={{ width: `${Math.min(100, (jogador.missoesCompletas / REQUISITOS_RANK[RANKS_GUILDA.indexOf(jogador.rankGuilda)]) * 100)}%` }}></div>
+                                                                </div>
+                                                            </div>
+                                                        )}
+
+                                                        {/* Lista de Missões */}
+                                                        {missoesDisponiveis.map(m => (
+                                                            <div key={m.id} className="p-4 bg-white/5 rounded-xl border-l-4 border-amber-500">
+                                                                <h4 className="font-bold text-lg">{m.titulo} <span className="text-xs bg-amber-900 px-2 py-0.5 rounded ml-2">Rank {m.rank}</span></h4>
+                                                                <p className="text-zinc-400 text-sm mb-3">{m.desc}</p>
+                                                                <div className="flex justify-between items-center">
+                                                                    <div className="text-xs text-amber-300">Recompensa: {m.ouro} ouro, {m.xp} XP</div>
+                                                                    <button onClick={() => aceitarMissao(m)} className="bg-amber-600 hover:bg-amber-500 text-black font-bold px-4 py-2 rounded text-sm">Aceitar Contrato</button>
                                                                 </div>
                                                             </div>
                                                         ))}
                                                     </div>
                                                 )}
                                             </div>
-                                        </div>
-                                    )}
+                                        )}
 
-                                    {modal === 'sistema' && (
-                                        <div>
-                                            <h2 className="text-2xl font-fantasy text-zinc-400 mb-6 flex items-center gap-2">⚙️ Sistema</h2>
-                                            <div className="grid gap-4">
-                                                <div className="grid grid-cols-2 gap-2">
-                                                    <button onClick={() => salvarJogo(false)} className="p-4 bg-green-900/40 hover:bg-green-800/60 border border-green-700/50 rounded-xl flex flex-col items-center gap-2 transition-all">
-                                                        <span className="text-2xl">💾</span>
-                                                        <div className="text-center">
-                                                            <div className="font-bold text-green-200">Salvar</div>
-                                                            <div className="text-[10px] text-zinc-400">Atualizar Atual</div>
-                                                        </div>
-                                                    </button>
-                                                    <button onClick={() => salvarJogo(true)} className="p-4 bg-green-900/20 hover:bg-green-800/40 border border-green-700/30 rounded-xl flex flex-col items-center gap-2 transition-all">
-                                                        <span className="text-2xl">➕</span>
-                                                        <div className="text-center">
-                                                            <div className="font-bold text-green-200">Salvar Como</div>
-                                                            <div className="text-[10px] text-zinc-400">Novo Arquivo</div>
-                                                        </div>
-                                                    </button>
+                                        {modal === 'academia' && (
+                                            <div>
+                                                <h2 className="text-2xl font-fantasy text-amber-500 mb-6">📜 Mestre de Habilidades</h2>
+                                                <p className="text-zinc-400 mb-4 text-sm">Treine técnicas exclusivas para {jogador.classe}.</p>
+                                                <div className="grid gap-3">
+                                                    {HABILIDADES_LOJA.filter(h => h.classe === jogador.classe).length === 0 ? (
+                                                        <p className="text-zinc-500 italic">Nenhuma habilidade disponível para sua classe no momento.</p>
+                                                    ) : (
+                                                        HABILIDADES_LOJA.filter(h => h.classe === jogador.classe || h.classe === 'Todas').map(habilidade => (
+                                                            <div key={habilidade.id} className="flex justify-between items-center p-3 bg-white/5 rounded-lg border border-white/5 hover:border-amber-500/30 transition-colors">
+                                                                <div>
+                                                                    <div className="font-bold text-blue-200">{habilidade.nome}</div>
+                                                                    <div className="text-xs text-zinc-500">{habilidade.desc}</div>
+                                                                    <div className="text-[10px] text-amber-400 font-mono mt-1">
+                                                                        Dano: {habilidade.poder} | Custo: {habilidade.mana} {CLASSES[jogador.classe]?.recurso.nome || 'MP'} | Tipo: {habilidade.tipo}
+                                                                    </div>
+                                                                </div>
+                                                                {jogador.magias.some(m => m.id === habilidade.id) ? (
+                                                                    <span className="text-green-500 text-xs font-bold px-3 py-2">APRENDIDO</span>
+                                                                ) : (
+                                                                    <button onClick={() => aprenderHabilidade(habilidade)} className="bg-blue-700 hover:bg-blue-600 px-4 py-2 rounded font-bold text-sm transition-colors">
+                                                                        Aprender {habilidade.custo}💰
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        ))
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+
+
+
+                                        {modal === 'taverna' && (
+                                            <div>
+                                                <h2 className="text-2xl font-fantasy text-amber-500 mb-6">🍺 Taverna do Javali</h2>
+                                                <div className="bg-amber-900/20 p-6 rounded-xl border border-amber-500/30 text-center mb-6">
+                                                    <p className="text-xl mb-4 italic">"Bem-vindo, viajante! Sente-se, a lareira está quente."</p>
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        <button onClick={() => acaoTaverna('bebida')} className="p-4 bg-amber-800 hover:bg-amber-700 rounded-xl border border-amber-600 transition-all hover:scale-105">
+                                                            <div className="text-4xl mb-2">🍺</div>
+                                                            <div className="font-bold">Beber Uma</div>
+                                                            <div className="text-sm text-yellow-300">Custo: {1 + jogador.nivel}💰</div>
+                                                            <div className="text-xs text-zinc-400 mt-1">Recupera um pouco de {CLASSES[jogador.classe]?.recurso.nome || 'Recurso'}</div>
+                                                        </button>
+                                                        <button onClick={() => acaoTaverna('descanso')} className="p-4 bg-blue-900 hover:bg-blue-800 rounded-xl border border-blue-600 transition-all hover:scale-105">
+                                                            <div className="text-4xl mb-2">🛏️</div>
+                                                            <div className="font-bold">Pernoitar</div>
+                                                            <div className="text-sm text-yellow-300">Custo: {14 + jogador.nivel}💰</div>
+                                                            <div className="text-xs text-zinc-400 mt-1">Recupera TODA Vida e {CLASSES[jogador.classe]?.recurso.nome || 'Recurso'}</div>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {modal === 'mapa' && (
+                                            <div className="h-full flex flex-col justify-center overflow-y-auto">
+                                                <h2 className="text-2xl font-fantasy text-amber-500 mb-4 flex-shrink-0 text-center">🗺️ Mapa do Reino</h2>
+
+                                                {/* Map Container - Responsive */}
+                                                <div className="relative w-full max-w-4xl rounded-xl overflow-hidden border-2 border-amber-900/50 bg-stone-900 group shadow-2xl mx-auto flex-shrink-0">
+
+                                                    {/* Map Image - Tag img for correct aspect ratio */}
+                                                    <img
+                                                        src="./assets/mapa.png?v=5"
+                                                        alt="Mapa do Mundo"
+                                                        className="w-full h-auto block opacity-50 grayscale group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-1000"
+                                                    />
+
+                                                    {/* Locations Pins - Absolute positioned over image */}
+                                                    <div className="absolute inset-0">
+                                                        {LOCAIS_FIXOS.map(local => {
+                                                            const isCurrent = local.nome === jogador.local;
+                                                            return (
+                                                                <button
+                                                                    key={local.nome}
+                                                                    onClick={() => viajar(local)}
+                                                                    disabled={isCurrent}
+                                                                    style={{ left: `${local.x}%`, top: `${local.y}%` }}
+                                                                    className={`absolute transform -translate-x-1/2 -translate-y-1/2 transition-all duration-300 z-10 w-8 h-8 flex items-center justify-center rounded-full border-2 shadow-[0_0_15px_rgba(0,0,0,0.8)] group/pin
+                                                                        ${isCurrent
+                                                                            ? 'bg-amber-600 border-amber-300 scale-110 cursor-default animate-pulse'
+                                                                            : 'bg-zinc-800 border-zinc-600 hover:bg-amber-700 hover:border-amber-400 hover:scale-125'}`}
+                                                                >
+                                                                    <span className="text-sm">
+                                                                        {local.tipo === 'Cidade' ? '🏰' :
+                                                                            local.tipo === 'Vila' ? '🏠' :
+                                                                                local.tipo === 'Pântano' ? '☣️' :
+                                                                                    local.nome === 'Floresta Sombria' ? '☠️' :
+                                                                                        local.tipo === 'Floresta' ? '🌲' :
+                                                                                            local.tipo === 'Montanha' ? '🏔️' : '📍'}
+                                                                    </span>
+
+                                                                    {/* Tooltip */}
+                                                                    <div className="absolute bottom-full mb-2 bg-black/90 text-amber-100 text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover/pin:opacity-100 pointer-events-none border border-amber-500/30 transition-opacity z-20">
+                                                                        <div className="font-bold">{local.nome}</div>
+                                                                        <div className="text-zinc-400 text-[10px]">{local.tipo}</div>
+                                                                        <div className="text-yellow-400 text-[10px]">Custo: {20 + (jogador.nivel * 5)} 💰</div>
+                                                                    </div>
+                                                                </button>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                                <div className="mt-4 text-center text-sm text-zinc-400 flex-shrink-0">
+                                                    Clique em um local para viajar • O local atual está pulsando em laranja
+                                                </div>
+                                            </div>
+                                        )}
+                                        {modal === 'inventario' && (
+                                            <div>
+                                                <h2 className="text-2xl font-fantasy text-amber-500 mb-6">🎒 Inventário & Equipamentos</h2>
+
+                                                {/* Equipados */}
+                                                <div className="mb-6 p-4 bg-zinc-800/50 rounded-xl border border-zinc-700">
+                                                    <h3 className="text-zinc-400 text-sm uppercase font-bold mb-3">Equipado</h3>
+                                                    <div className="grid grid-cols-3 gap-2">
+                                                        {['arma', 'armadura', 'acessorio'].map(slot => (
+                                                            <div key={slot} className="relative group">
+                                                                <div className={`p-3 rounded-lg border flex flex-col items-center justify-center h-24 text-center ${jogador.equipamento[slot] ? 'bg-amber-900/20 border-amber-500/50' : 'bg-black/20 border-white/5'}`}>
+                                                                    {jogador.equipamento[slot] ? (
+                                                                        <>
+                                                                            <div className="font-bold text-amber-100 text-xs sm:text-sm">{jogador.equipamento[slot].nome}</div>
+                                                                            <button onClick={() => desequipar(slot)} className="absolute -top-2 -right-2 bg-red-600 text-white w-6 h-6 rounded-full text-xs shadow-lg hover:scale-110 opacity-0 group-hover:opacity-100 transition-all">✕</button>
+                                                                        </>
+                                                                    ) : (
+                                                                        <div className="text-zinc-600 text-xs uppercase">{slot}</div>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
                                                 </div>
 
-                                                <button onClick={carregarJogo} className="p-4 bg-blue-900/40 hover:bg-blue-800/60 border border-blue-700/50 rounded-xl flex items-center gap-4 transition-all">
-                                                    <span className="text-3xl">📂</span>
-                                                    <div className="text-left">
-                                                        <div className="font-bold text-blue-200">Carregar (Navegador)</div>
-                                                        <div className="text-xs text-zinc-400">Recupera o save local.</div>
-                                                    </div>
-                                                </button>
+                                                {/* Mochila */}
+                                                <div>
+                                                    <h3 className="text-zinc-400 text-sm uppercase font-bold mb-3">Na Mochila ({jogador.inventario.length} itens)</h3>
+                                                    {jogador.inventario.length === 0 ? (
+                                                        <div className="text-zinc-500 italic text-center py-8">Sua mochila está vazia.</div>
+                                                    ) : (
+                                                        <div className="grid sm:grid-cols-2 gap-2">
+                                                            {(() => {
+                                                                const grupos = {};
+                                                                const ordem = [];
 
-                                                <div className="h-px bg-zinc-800/50"></div>
+                                                                jogador.inventario.forEach(item => {
+                                                                    // Agrupa apenas itens empilháveis (Recursos, Consumíveis, Lixo, Loot, Pet)
+                                                                    const agrupar = ['Recurso', 'Consumivel', 'Lixo', 'Loot', 'Pet'].includes(item.tipo);
+                                                                    const key = agrupar ? item.id : item.uid;
 
-                                                <button onClick={exportarArquivo} className="p-4 bg-amber-900/40 hover:bg-amber-800/60 border border-amber-700/50 rounded-xl flex items-center gap-4 transition-all">
-                                                    <span className="text-3xl">📥</span>
-                                                    <div className="text-left">
-                                                        <div className="font-bold text-amber-200">Baixar Backup (PC)</div>
-                                                        <div className="text-xs text-zinc-400">Cria arquivo para transferir de PC.</div>
-                                                    </div>
-                                                </button>
+                                                                    if (!grupos[key]) {
+                                                                        grupos[key] = { ...item, qtd: 0, uids: [] };
+                                                                        ordem.push(key);
+                                                                    }
+                                                                    grupos[key].qtd += 1;
+                                                                    grupos[key].uids.push(item.uid);
+                                                                });
 
-                                                <button onClick={triggerImport} className="p-4 bg-purple-900/40 hover:bg-purple-800/60 border border-purple-700/50 rounded-xl flex items-center gap-4 transition-all">
-                                                    <span className="text-3xl">📤</span>
-                                                    <div className="text-left">
-                                                        <div className="font-bold text-purple-200">Carregar do PC</div>
-                                                        <div className="text-xs text-zinc-400">Restaura arquivo .rpgsave.</div>
-                                                    </div>
-                                                </button>
-
-                                                <button onClick={reiniciarJogo} className="p-4 bg-red-900/40 hover:bg-red-800/60 border border-red-700/50 rounded-xl flex items-center gap-4 transition-all mt-8">
-                                                    <span className="text-3xl">🚪</span>
-                                                    <div className="text-left">
-                                                        <div className="font-bold text-red-200">Sair do Jogo</div>
-                                                        <div className="text-xs text-zinc-400">Volta para o menu principal.</div>
-                                                    </div>
-                                                </button>
+                                                                return ordem.map(key => {
+                                                                    const item = grupos[key];
+                                                                    return (
+                                                                        <div key={key} className="flex justify-between items-center p-2 bg-white/5 rounded border border-white/5 hover:border-amber-500/30 group">
+                                                                            <div className="flex-1">
+                                                                                <div className="font-bold text-zinc-200 flex items-center gap-2">
+                                                                                    {item.nome}
+                                                                                    {item.qtd > 1 && <span className="text-xs bg-zinc-700 text-zinc-300 px-1.5 rounded-full">x{item.qtd}</span>}
+                                                                                </div>
+                                                                                <div className="text-[10px] text-zinc-500">{item.tipo} • {item.preco}💰</div>
+                                                                            </div>
+                                                                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                                {/* Equipar */}
+                                                                                {['Arma', 'Armadura', 'Acessorio', 'Ferramenta'].includes(item.tipo) && (
+                                                                                    <button onClick={() => equiparItem(item)} className="p-1.5 bg-green-700/50 hover:bg-green-600 rounded text-xs" title="Equipar">🛡️</button>
+                                                                                )}
+                                                                                {/* Usar */}
+                                                                                {item.efeito && (
+                                                                                    <button onClick={() => usarItem(item)} className="p-1.5 bg-blue-700/50 hover:bg-blue-600 rounded text-xs" title="Usar">⚗️</button>
+                                                                                )}
+                                                                                {/* Vender */}
+                                                                                <button onClick={() => venderItem(item)} className="p-1.5 bg-red-900/50 hover:bg-red-700 rounded text-xs" title="Vender">💰</button>
+                                                                            </div>
+                                                                        </div>
+                                                                    );
+                                                                });
+                                                            })()}
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
-                                        </div>
-                                    )}
+                                        )}
 
-                                    {modal === 'carregar_menu' && (
-                                        <div>
-                                            <h2 className="text-2xl font-fantasy text-amber-500 mb-6">📂 Carregar Jogo</h2>
-                                            {getSaves().length === 0 ? (
-                                                <p className="text-zinc-500 italic">Nenhum save encontrado.</p>
-                                            ) : (
-                                                <div className="grid gap-2 max-h-[60vh] overflow-y-auto pr-2">
-                                                    {getSaves().map(save => (
-                                                        <button key={save.id} onClick={() => carregarSaveEspecifico(save)} className="p-4 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 text-left group transition-all">
-                                                            <div className="font-bold text-amber-100 group-hover:text-amber-400">{save.nome}</div>
-                                                            <div className="text-xs text-zinc-500 flex justify-between mt-1">
-                                                                <span>{save.data}</span>
-                                                                <span>ID: {save.id.toString().slice(-4)}</span>
+                                        {modal === 'sistema' && (
+                                            <div>
+                                                <h2 className="text-2xl font-fantasy text-zinc-400 mb-6 flex items-center gap-2">⚙️ Sistema</h2>
+                                                <div className="grid gap-4">
+                                                    <div className="grid grid-cols-2 gap-2">
+                                                        <button onClick={() => salvarJogo(false)} className="p-4 bg-green-900/40 hover:bg-green-800/60 border border-green-700/50 rounded-xl flex flex-col items-center gap-2 transition-all">
+                                                            <span className="text-2xl">💾</span>
+                                                            <div className="text-center">
+                                                                <div className="font-bold text-green-200">Salvar</div>
+                                                                <div className="text-[10px] text-zinc-400">Atualizar Atual</div>
                                                             </div>
                                                         </button>
-                                                    ))}
+                                                        <button onClick={() => salvarJogo(true)} className="p-4 bg-green-900/20 hover:bg-green-800/40 border border-green-700/30 rounded-xl flex flex-col items-center gap-2 transition-all">
+                                                            <span className="text-2xl">➕</span>
+                                                            <div className="text-center">
+                                                                <div className="font-bold text-green-200">Salvar Como</div>
+                                                                <div className="text-[10px] text-zinc-400">Novo Arquivo</div>
+                                                            </div>
+                                                        </button>
+                                                    </div>
+
+                                                    <button onClick={carregarJogo} className="p-4 bg-blue-900/40 hover:bg-blue-800/60 border border-blue-700/50 rounded-xl flex items-center gap-4 transition-all">
+                                                        <span className="text-3xl">📂</span>
+                                                        <div className="text-left">
+                                                            <div className="font-bold text-blue-200">Carregar (Navegador)</div>
+                                                            <div className="text-xs text-zinc-400">Recupera o save local.</div>
+                                                        </div>
+                                                    </button>
+
+                                                    <div className="h-px bg-zinc-800/50"></div>
+
+                                                    <button onClick={exportarArquivo} className="p-4 bg-amber-900/40 hover:bg-amber-800/60 border border-amber-700/50 rounded-xl flex items-center gap-4 transition-all">
+                                                        <span className="text-3xl">📥</span>
+                                                        <div className="text-left">
+                                                            <div className="font-bold text-amber-200">Baixar Backup (PC)</div>
+                                                            <div className="text-xs text-zinc-400">Cria arquivo para transferir de PC.</div>
+                                                        </div>
+                                                    </button>
+
+                                                    <button onClick={triggerImport} className="p-4 bg-purple-900/40 hover:bg-purple-800/60 border border-purple-700/50 rounded-xl flex items-center gap-4 transition-all">
+                                                        <span className="text-3xl">📤</span>
+                                                        <div className="text-left">
+                                                            <div className="font-bold text-purple-200">Carregar do PC</div>
+                                                            <div className="text-xs text-zinc-400">Restaura arquivo .rpgsave.</div>
+                                                        </div>
+                                                    </button>
+
+                                                    <button onClick={reiniciarJogo} className="p-4 bg-red-900/40 hover:bg-red-800/60 border border-red-700/50 rounded-xl flex items-center gap-4 transition-all mt-8">
+                                                        <span className="text-3xl">🚪</span>
+                                                        <div className="text-left">
+                                                            <div className="font-bold text-red-200">Sair do Jogo</div>
+                                                            <div className="text-xs text-zinc-400">Volta para o menu principal.</div>
+                                                        </div>
+                                                    </button>
                                                 </div>
-                                            )}
-                                        </div>
-                                    )}
+                                            </div>
+                                        )}
+
+                                        {modal === 'carregar_menu' && (
+                                            <div>
+                                                <h2 className="text-2xl font-fantasy text-amber-500 mb-6">📂 Carregar Jogo</h2>
+                                                {getSaves().length === 0 ? (
+                                                    <p className="text-zinc-500 italic">Nenhum save encontrado.</p>
+                                                ) : (
+                                                    <div className="grid gap-2 max-h-[60vh] overflow-y-auto pr-2">
+                                                        {getSaves().map(save => (
+                                                            <button key={save.id} onClick={() => carregarSaveEspecifico(save)} className="p-4 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 text-left group transition-all">
+                                                                <div className="font-bold text-amber-100 group-hover:text-amber-400">{save.nome}</div>
+                                                                <div className="text-xs text-zinc-500 flex justify-between mt-1">
+                                                                    <span>{save.data}</span>
+                                                                    <span>ID: {save.id.toString().slice(-4)}</span>
+                                                                </div>
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    )}
+                        )
+                    }
 
                     {/* Modal Isolado para o Menu Principal */}
-                    {view === 'menu' && modal === 'carregar_menu' && (
-                        <div className="absolute inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center p-8 z-50">
-                            <div className="bg-zinc-900 border border-amber-500/30 p-6 rounded-2xl w-full max-w-lg relative">
-                                <button onClick={() => setModal(null)} className="absolute top-4 right-4 text-zinc-500 hover:text-white text-xl">✕</button>
-                                <h2 className="text-2xl font-fantasy text-amber-500 mb-6">📂 Carregar Jogo</h2>
-                                <div className="grid gap-2 max-h-[60vh] overflow-y-auto pr-2">
-                                    {getSaves().length === 0 ? <p className="text-zinc-500">Vazio.</p> : getSaves().map(save => (
-                                        <button key={save.id} onClick={() => { carregarSaveEspecifico(save); }} className="p-4 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 text-left w-full">
-                                            <div className="font-bold text-amber-100">{save.nome}</div>
-                                            <div className="text-xs text-zinc-500">{save.data}</div>
-                                        </button>
-                                    ))}
+                    {
+                        view === 'menu' && modal === 'carregar_menu' && (
+                            <div className="absolute inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center p-8 z-50">
+                                <div className="bg-zinc-900 border border-amber-500/30 p-6 rounded-2xl w-full max-w-lg relative">
+                                    <button onClick={() => setModal(null)} className="absolute top-4 right-4 text-zinc-500 hover:text-white text-xl">✕</button>
+                                    <h2 className="text-2xl font-fantasy text-amber-500 mb-6">📂 Carregar Jogo</h2>
+                                    <div className="grid gap-2 max-h-[60vh] overflow-y-auto pr-2">
+                                        {getSaves().length === 0 ? <p className="text-zinc-500">Vazio.</p> : getSaves().map(save => (
+                                            <button key={save.id} onClick={() => { carregarSaveEspecifico(save); }} className="p-4 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 text-left w-full">
+                                                <div className="font-bold text-amber-100">{save.nome}</div>
+                                                <div className="text-xs text-zinc-500">{save.data}</div>
+                                            </button>
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    )}
+                        )
+                    }
                     {/* INPUT DE ARQUIVO (OCULTO) */}
                     <input
                         type="file"
@@ -2230,7 +3056,7 @@
                         onChange={importarArquivo}
                         accept=".rpgsave,.json,application/json"
                     />
-                </div>
+                </div >
             );
         };
 

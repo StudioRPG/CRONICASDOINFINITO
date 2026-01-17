@@ -41,6 +41,49 @@
             </button>
         </div>
 
+        <!-- RAÇAS -->
+        <section class="mb-12">
+            <h3 class="text-3xl font-['Cinzel'] text-amber-400 mb-6 flex items-center gap-3 print:text-black">
+                <span>🧬</span> Raças
+            </h3>
+            <div class="grid gap-4 md:grid-cols-2">
+                <div class="bg-black/20 p-4 rounded border border-zinc-700 print:border-gray-300">
+                    <div class="font-bold text-zinc-200 print:text-black">👨 Humano</div>
+                    <div class="text-xs text-amber-500 uppercase font-bold">Prodígio</div>
+                    <div class="text-sm mt-1 text-zinc-400 print:text-black">Ganha +10% de XP em todas as fontes.
+                        Versátil.</div>
+                    <div class="text-xs mt-2 text-zinc-500">+1 Todos Atributos</div>
+                </div>
+                <div class="bg-black/20 p-4 rounded border border-zinc-700 print:border-gray-300">
+                    <div class="font-bold text-zinc-200 print:text-black">🧝 Elfo</div>
+                    <div class="text-xs text-amber-500 uppercase font-bold">Graça Élfica</div>
+                    <div class="text-sm mt-1 text-zinc-400 print:text-black">Começa com +10 Mana e ganha +1 Mana por
+                        nível.</div>
+                    <div class="text-xs mt-2 text-zinc-500">+2 Hab, +2 PdF, -1 For</div>
+                </div>
+                <div class="bg-black/20 p-4 rounded border border-zinc-700 print:border-gray-300">
+                    <div class="font-bold text-zinc-200 print:text-black">🧔 Anão</div>
+                    <div class="text-xs text-amber-500 uppercase font-bold">Pele de Pedra</div>
+                    <div class="text-sm mt-1 text-zinc-400 print:text-black">Começa com +20 Vida Máxima. Robusto.</div>
+                    <div class="text-xs mt-2 text-zinc-500">+2 Res, +2 Arm, -1 Hab</div>
+                </div>
+                <div class="bg-black/20 p-4 rounded border border-zinc-700 print:border-gray-300">
+                    <div class="font-bold text-zinc-200 print:text-black">👹 Orc</div>
+                    <div class="text-xs text-amber-500 uppercase font-bold">Fúria</div>
+                    <div class="text-sm mt-1 text-zinc-400 print:text-black">Causa +2 de Dano Físico extra em todos
+                        ataques.</div>
+                    <div class="text-xs mt-2 text-zinc-500">+3 For, +2 Arm, -1 Hab/PdF</div>
+                </div>
+                <div class="bg-black/20 p-4 rounded border border-zinc-700 print:border-gray-300">
+                    <div class="font-bold text-zinc-200 print:text-black">👼 Celestial</div>
+                    <div class="text-xs text-amber-500 uppercase font-bold">Proteção Divina</div>
+                    <div class="text-sm mt-1 text-zinc-400 print:text-black">Inicia com +2 Armadura e +2 Resistência
+                        (Passivo).</div>
+                    <div class="text-xs mt-2 text-zinc-500">+2 PdF/Hab/Res</div>
+                </div>
+            </div>
+        </section>
+
         <!-- CLASSES -->
         <section class="mb-12">
             <h3 class="text-3xl font-['Cinzel'] text-amber-400 mb-6 flex items-center gap-3 print:text-black">
@@ -59,43 +102,57 @@
                     <tbody class="divide-y divide-zinc-800 print:divide-gray-300">
                         <tr>
                             <td class="p-3 font-bold">⚔️ Guerreiro</td>
-                            <td class="p-3 text-zinc-400 print:text-black">Combate corpo a corpo.</td>
+                            <td class="p-3 text-zinc-400 print:text-black">Combate corpo a corpo. <span
+                                    class="text-xs text-amber-600 block">(+3 Força, +2 Armadura)</span></td>
                             <td class="p-3 font-bold text-amber-200 print:text-black">🏇 Cavaleiro</td>
                         </tr>
                         <tr>
                             <td class="p-3 font-bold">🪄 Mago</td>
-                            <td class="p-3 text-zinc-400 print:text-black">Artes arcanas.</td>
+                            <td class="p-3 text-zinc-400 print:text-black">Artes arcanas. <span
+                                    class="text-xs text-amber-600 block">(+3 PdF, +2 Habilidade)</span></td>
                             <td class="p-3 font-bold text-amber-200 print:text-black">🔮 Arquimago</td>
                         </tr>
                         <tr>
                             <td class="p-3 font-bold">🗡️ Ladino</td>
-                            <td class="p-3 text-zinc-400 print:text-black">Furtividade e precisão.</td>
+                            <td class="p-3 text-zinc-400 print:text-black">Furtividade e precisão. <span
+                                    class="text-xs text-amber-600 block">(+3 Habilidade, +2 Força)</span></td>
                             <td class="p-3 font-bold text-amber-200 print:text-black">🌑 Assassino</td>
                         </tr>
                         <tr>
                             <td class="p-3 font-bold">🛡️ Paladino</td>
-                            <td class="p-3 text-zinc-400 print:text-black">Guerreiros santos.</td>
+                            <td class="p-3 text-zinc-400 print:text-black">Guerreiros santos. <span
+                                    class="text-xs text-amber-600 block">(+2 Res, +2 For, +1 Arm)</span></td>
                             <td class="p-3 font-bold text-amber-200 print:text-black">✝️ Cruzado</td>
                         </tr>
                         <tr>
                             <td class="p-3 font-bold">💀 Necromante</td>
-                            <td class="p-3 text-zinc-400 print:text-black">Magia da morte.</td>
+                            <td class="p-3 text-zinc-400 print:text-black">Magia da morte. <span
+                                    class="text-xs text-amber-600 block">(+3 PdF, +2 Resistência)</span></td>
                             <td class="p-3 font-bold text-amber-200 print:text-black">☠️ Lich</td>
                         </tr>
                         <tr>
                             <td class="p-3 font-bold">🎵 Bardo</td>
-                            <td class="p-3 text-zinc-400 print:text-black">Música e magia.</td>
+                            <td class="p-3 text-zinc-400 print:text-black">Música e magia. <span
+                                    class="text-xs text-amber-600 block">(+2 Hab, +2 PdF, +1 Res)</span></td>
                             <td class="p-3 font-bold text-amber-200 print:text-black">🎶 Trovador</td>
                         </tr>
                         <tr>
                             <td class="p-3 font-bold">✨ Clérigo</td>
-                            <td class="p-3 text-zinc-400 print:text-black">Cura divina.</td>
+                            <td class="p-3 text-zinc-400 print:text-black">Cura divina. <span
+                                    class="text-xs text-amber-600 block">(+3 Resistência, +2 PdF)</span></td>
                             <td class="p-3 font-bold text-amber-200 print:text-black">🌟 Sumo-Sacerdote</td>
                         </tr>
                         <tr>
                             <td class="p-3 font-bold">🌿 Druida</td>
-                            <td class="p-3 text-zinc-400 print:text-black">Força da natureza.</td>
+                            <td class="p-3 text-zinc-400 print:text-black">Força da natureza. <span
+                                    class="text-xs text-amber-600 block">(+2 For, +2 PdF, +1 Res)</span></td>
                             <td class="p-3 font-bold text-amber-200 print:text-black">🌲 Guardião</td>
+                        </tr>
+                        <tr>
+                            <td class="p-3 font-bold">🏹 Arqueiro</td>
+                            <td class="p-3 text-zinc-400 print:text-black">Mestre do arco e flecha. <span
+                                    class="text-xs text-amber-600 block">(+3 Hab, +1 For, +1 PdF)</span></td>
+                            <td class="p-3 font-bold text-amber-200 print:text-black">🦅 Sentinela</td>
                         </tr>
                     </tbody>
                 </table>
@@ -150,35 +207,215 @@
             </ul>
         </section>
 
+        <!-- PETS -->
+        <section class="mb-12">
+            <h3 class="text-3xl font-['Cinzel'] text-amber-400 mb-6 flex items-center gap-3 print:text-black">
+                <span>🐾</span> Pets e Companheiros
+            </h3>
+            <p class="mb-4 text-zinc-300 text-sm">Adquira companheiros na Loja para ganhar bônus exclusivos em batalha.
+            </p>
+            <div class="grid gap-4 md:grid-cols-2">
+                <div class="bg-black/20 p-4 rounded border border-zinc-700 print:border-gray-300">
+                    <div class="font-bold text-zinc-200 print:text-black">🐶 Cão de Caça (500💰)</div>
+                    <div class="text-xs text-amber-500 font-bold">+3 Dano por Turno</div>
+                </div>
+                <div class="bg-black/20 p-4 rounded border border-zinc-700 print:border-gray-300">
+                    <div class="font-bold text-zinc-200 print:text-black">🐱 Gato Legendário (700💰)</div>
+                    <div class="text-xs text-amber-500 font-bold">+5% Crítico e Esquiva</div>
+                </div>
+                <div class="bg-black/20 p-4 rounded border border-zinc-700 print:border-gray-300">
+                    <div class="font-bold text-zinc-200 print:text-black">🧚 Fada da Luz (1500💰)</div>
+                    <div class="text-xs text-amber-500 font-bold">Cura 5 PV por Turno</div>
+                </div>
+                <div class="bg-black/20 p-4 rounded border border-zinc-700 print:border-gray-300">
+                    <div class="font-bold text-zinc-200 print:text-black">🐺 Lobo das Neves (2500💰)</div>
+                    <div class="text-xs text-amber-500 font-bold">+8 Dano Feroz</div>
+                </div>
+                <div
+                    class="bg-black/20 p-4 rounded border border-zinc-700 print:border-gray-300 col-span-1 md:col-span-2">
+                    <div class="font-bold text-red-300 print:text-black">🐉 Dragãozinho (10000💰)</div>
+                    <div class="text-xs text-amber-500 font-bold">+20 Dano de Fogo (Supremo)</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- MASMORRAS -->
+        <section class="mb-12 page-break">
+            <h3 class="text-3xl font-['Cinzel'] text-amber-400 mb-6 flex items-center gap-3 print:text-black">
+                <span>🗝️</span> Masmorras (Dungeons)
+            </h3>
+            <p class="mb-4 text-zinc-300 text-sm">Locais perigosos com várias salas e um Chefe Final. Recompensam com
+                muito Ouro e Itens Raros. Aventure-se se tiver coragem!</p>
+
+            <div class="space-y-4">
+                <div class="bg-purple-900/20 p-4 rounded border border-purple-700/50">
+                    <h4 class="font-bold text-purple-300">💀 Tumba do Rei Esqueleto (Nvl 5+)</h4>
+                    <p class="text-xs text-zinc-400">Localização: Vila Verdejante</p>
+                    <p class="text-sm mt-1">Enfrente hordas de mortos-vivos e o próprio Rei caído.</p>
+                </div>
+                <div class="bg-purple-900/20 p-4 rounded border border-purple-700/50">
+                    <h4 class="font-bold text-purple-300">🐀 Esgotos Reais (Nvl 10+)</h4>
+                    <p class="text-xs text-zinc-400">Localização: Cidadela Real</p>
+                    <p class="text-sm mt-1">O submundo da capital esconde segredos sujos e o Mestre dos Ratos.</p>
+                </div>
+                <div class="bg-purple-900/20 p-4 rounded border border-purple-700/50">
+                    <h4 class="font-bold text-purple-300">🕷️ Ninho da Aranha Rainha (Nvl 15+)</h4>
+                    <p class="text-xs text-zinc-400">Localização: Floresta Sombria</p>
+                    <p class="text-sm mt-1">Teias, veneno e uma rainha faminta.</p>
+                </div>
+                <div class="bg-purple-900/20 p-4 rounded border border-purple-700/50">
+                    <h4 class="font-bold text-purple-300">🔥 Caverna do Dragão (Nvl 25+)</h4>
+                    <p class="text-xs text-zinc-400">Localização: Montanhas de Ferro</p>
+                    <p class="text-sm mt-1">O desafio supremo. Tesouros inimagináveis guardados pelo Dragão Vermelho.
+                    </p>
+                </div>
+            </div>
+        </section>
+
         <!-- LOCAIS -->
         <section class="page-break">
             <h3 class="text-3xl font-['Cinzel'] text-amber-400 mb-6 flex items-center gap-3 print:text-black">
                 <span>🗺️</span> Guia de Regiões
             </h3>
 
-            <div class="space-y-6">
+            <div class="space-y-8">
                 <div>
-                    <h4 class="text-xl font-bold text-green-400 print:text-black">🏰 Vila Verdejante (Nvl 1-3)</h4>
-                    <p class="text-zinc-400 print:text-black">Zona inicial. Monstros fracos como Ratos e Slimes.</p>
+                    <h4 class="text-xl font-bold text-green-400 print:text-black border-b border-white/10 pb-2 mb-3">🏰
+                        Vila Verdejante (Nvl 1-5)</h4>
+                    <ul class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                        <li class="p-2 bg-black/30 rounded print:bg-gray-100">🐀 <strong>Ratataz</strong> (HP 10) -
+                            Fraco, irritante.</li>
+                        <li class="p-2 bg-black/30 rounded print:bg-gray-100">💧 <strong>Slime</strong> (HP 12) -
+                            Viscoso e básico.</li>
+                        <li class="p-2 bg-black/30 rounded print:bg-gray-100">👺 <strong>Bandido Pé-de-Chinelo</strong>
+                            (HP 15) - Ladrãozinho.</li>
+
+                        <li class="p-2 bg-purple-900/30 border border-purple-500/30 rounded col-span-1 md:col-span-2 print:bg-gray-200 cursor-help"
+                            title="Masmorra Disponível">
+                            🗝️ <strong>Masmorra: Tumba do Rei Esqueleto</strong> (Nvl 5+)
+                        </li>
+                    </ul>
                 </div>
+
                 <div>
-                    <h4 class="text-xl font-bold text-green-600 print:text-black">🌲 Bosque Ancestral (Nvl 3-5)</h4>
-                    <p class="text-zinc-400 print:text-black">Lar de Lobos e Ursos. Cuidado com o Javali Selvagem.</p>
+                    <h4 class="text-xl font-bold text-green-600 print:text-black border-b border-white/10 pb-2 mb-3">🌲
+                        Bosque Ancestral (Nvl 5-10)</h4>
+                    <ul class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                        <li class="p-2 bg-black/30 rounded print:bg-gray-100">🐺 <strong>Lobo Faminto</strong> (HP 25)
+                            <br><span class="text-amber-500 text-xs">Drop: Pele de Lobo</span>
+                        </li>
+                        <li class="p-2 bg-black/30 rounded print:bg-gray-100">🐻 <strong>Urso Pardo</strong> (HP 60)
+                            <br><span class="text-amber-500 text-xs">Drop: Garra de Urso</span>
+                        </li>
+                        <li class="p-2 bg-black/30 rounded print:bg-gray-100">🐗 <strong>Javali Selvagem</strong> (HP
+                            35) - Investida forte.</li>
+                        <li class="p-2 bg-black/30 rounded print:bg-gray-100">⚔️ <strong>Bandido da Estrada</strong> (HP
+                            30) - Perigoso.</li>
+                    </ul>
                 </div>
+
                 <div>
-                    <h4 class="text-xl font-bold text-purple-400 print:text-black">☠️ Floresta Sombria (Nvl 5-8)</h4>
-                    <p class="text-zinc-400 print:text-black">Mortos-vivos e Aranhas. O <strong>Dragão Jovem</strong>
-                        habita aqui.</p>
+                    <h4 class="text-xl font-bold text-purple-400 print:text-black border-b border-white/10 pb-2 mb-3">☠️
+                        Floresta Sombria (Nvl 10-15)</h4>
+                    <ul class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                        <li class="p-2 bg-black/30 rounded print:bg-gray-100">💀 <strong>Esqueleto Guerreiro</strong>
+                            (HP 30) <br><span class="text-amber-500 text-xs">Drop: Osso Antigo</span></li>
+                        <li class="p-2 bg-black/30 rounded print:bg-gray-100">🕷️ <strong>Aranha Gigante</strong> (HP
+                            40) <br><span class="text-amber-500 text-xs">Drop: Veneno de Aranha</span></li>
+                        <li class="p-2 bg-black/30 rounded print:bg-gray-100">👻 <strong>Espectro</strong> (HP 50)
+                            <br><span class="text-amber-500 text-xs">Drop: Ectoplasma</span>
+                        </li>
+                        <li
+                            class="p-2 bg-red-900/30 border border-red-500/30 rounded col-span-1 md:col-span-2 print:bg-gray-200">
+                            🐲 <strong>BOSS: Dragão Jovem</strong> (HP 150) <br><span
+                                class="text-amber-400 font-bold text-xs">Drop: Escama de Dragão</span></li>
+
+                        <li class="p-2 bg-purple-900/30 border border-purple-500/30 rounded col-span-1 md:col-span-2 print:bg-gray-200 cursor-help"
+                            title="Masmorra Disponível">
+                            🗝️ <strong>Masmorra: Ninho da Aranha</strong> (Nvl 15+)
+                        </li>
+                    </ul>
                 </div>
+
+                <section class="page-break"></section>
+
                 <div>
-                    <h4 class="text-xl font-bold text-red-400 print:text-black">🏔️ Montanhas de Ferro (Nvl 8-12)</h4>
-                    <p class="text-zinc-400 print:text-black">Domínio dos Orcs e Trolls. O Golem de Pedra é um
-                        adversário formidável.</p>
+                    <h4 class="text-xl font-bold text-red-500 print:text-black border-b border-white/10 pb-2 mb-3">🏔️
+                        Montanhas de Ferro (Nvl 15-25)</h4>
+                    <ul class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                        <li class="p-2 bg-black/30 rounded print:bg-gray-100">👹 <strong>Orc Guerreiro</strong> (HP 55)
+                            <br><span class="text-amber-500 text-xs">Drop: Machado Velho</span>
+                        </li>
+                        <li class="p-2 bg-black/30 rounded print:bg-gray-100">🧌 <strong>Troll da Montanha</strong> (HP
+                            120) <br><span class="text-amber-500 text-xs">Drop: Couro de Troll</span></li>
+                        <li
+                            class="p-2 bg-red-900/30 border border-red-500/30 rounded col-span-1 md:col-span-2 print:bg-gray-200">
+                            💎 <strong>BOSS: Golem de Pedra</strong> (HP 150) <br><span
+                                class="text-amber-400 font-bold text-xs">Drop: Minério de Ferro</span></li>
+
+                        <li class="p-2 bg-purple-900/30 border border-purple-500/30 rounded col-span-1 md:col-span-2 print:bg-gray-200 cursor-help"
+                            title="Masmorra Disponível">
+                            🗝️ <strong>Masmorra: Caverna do Dragão</strong> (Nvl 25+)
+                        </li>
+                    </ul>
                 </div>
+
                 <div>
-                    <h4 class="text-xl font-bold text-cyan-400 print:text-black">❄️ Montanhas de Gelo (Nvl 15-20)</h4>
-                    <p class="text-zinc-400 print:text-black">A zona mais perigosa. Yetis, Gigantes e o lendário <strong
-                            class="text-red-500 print:text-black">DRAGÃO BRANCO</strong>.</p>
+                    <h4 class="text-xl font-bold text-teal-600 print:text-black border-b border-white/10 pb-2 mb-3">🧪
+                        Pântano da Perdição (Nvl 15-20)</h4>
+                    <ul class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                        <li class="p-2 bg-black/30 rounded print:bg-gray-100">🤢 <strong>Slime Tóxico</strong> (HP 40) -
+                            Corrosivo.</li>
+                        <li class="p-2 bg-black/30 rounded print:bg-gray-100">🐍 <strong>Cobra Gigante</strong> (HP 50)
+                            <br><span class="text-amber-500 text-xs">Drop: Presa de Cobra</span>
+                        </li>
+                        <li
+                            class="p-2 bg-red-900/30 border border-red-500/30 rounded col-span-1 md:col-span-2 print:bg-gray-200">
+                            🐊 <strong>BOSS: Crocodilo Ancião</strong> (HP 90) <br><span
+                                class="text-amber-400 font-bold text-xs">Drop: Couro Rígido</span></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h4 class="text-xl font-bold text-cyan-500 print:text-black border-b border-white/10 pb-2 mb-3">❄️
+                        Montanhas de Gelo (Nvl 25-35+)</h4>
+                    <ul class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                        <li class="p-2 bg-black/30 rounded print:bg-gray-100">🐺 <strong>Lobo das Neves</strong> (HP 45)
+                            <br><span class="text-amber-500 text-xs">Drop: Pele Branca</span>
+                        </li>
+                        <li class="p-2 bg-black/30 rounded print:bg-gray-100">❄️ <strong>Elemental de Gelo</strong> (HP
+                            110) <br><span class="text-amber-500 text-xs">Drop: Fragmento</span></li>
+                        <li class="p-2 bg-red-900/30 border border-red-500/30 rounded print:bg-gray-200">⛄ <strong>BOSS:
+                                Yeti</strong> (HP 150) <br><span class="text-amber-400 font-bold text-xs">Drop: Pele de
+                                Yeti</span></li>
+                        <li class="p-2 bg-red-900/30 border border-red-500/30 rounded print:bg-gray-200">🗿
+                            <strong>BOSS: Gigante de Gelo</strong> (HP 300) <br><span
+                                class="text-amber-400 font-bold text-xs">Drop: Armadura Congelada</span>
+                        </li>
+                        <li
+                            class="p-3 bg-red-950/50 border border-red-500 rounded col-span-1 md:col-span-2 text-center print:bg-gray-300">
+                            <span class="text-2xl block mb-1">👑</span>
+                            <strong class="text-lg text-red-200 uppercase">Super Boss: Dragão Branco</strong>
+                            <div class="text-xs text-red-400 mt-1">HP 500 | Dano 35+</div>
+                            <div class="text-amber-400 font-bold text-xs mt-1">Drop Divino: Lâmina de Gelo</div>
+                        </li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h4 class="text-xl font-bold text-gray-400 print:text-black border-b border-white/10 pb-2 mb-3">🛡️
+                        Cidadela Real (Nvl 1-8)</h4>
+                    <p class="text-zinc-500 text-sm mb-2">Área urbana relativamente segura.</p>
+                    <ul class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                        <li class="p-2 bg-black/30 rounded print:bg-gray-100">🐭 <strong>Rato de Esgoto</strong> (HP 15)
+                        </li>
+                        <li class="p-2 bg-black/30 rounded print:bg-gray-100">🗡️ <strong>Ladrão Urbano</strong> (HP 25)
+                        </li>
+                        <li class="p-2 bg-purple-900/30 border border-purple-500/30 rounded col-span-1 md:col-span-2 print:bg-gray-200 cursor-help"
+                            title="Masmorra Disponível">
+                            🗝️ <strong>Masmorra: Esgotos Reais</strong> (Nvl 10+)
+                        </li>
+                    </ul>
                 </div>
             </div>
         </section>
