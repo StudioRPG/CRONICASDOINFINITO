@@ -581,7 +581,7 @@
 
             return (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-slide">
-                    <div className="bg-zinc-900 border border-zinc-700 rounded-xl w-full max-w-4xl h-[80vh] flex flex-col shadow-2xl overflow-hidden">
+                    <div className="bg-zinc-900 border border-zinc-700 rounded-xl w-full max-w-4xl max-h-[90vh] h-auto flex flex-col shadow-2xl overflow-hidden">
                         {/* Header */}
                         <div className="p-6 border-b border-zinc-700 bg-zinc-950 flex justify-between items-center">
                             <div>
@@ -594,7 +594,7 @@
                         </div>
 
                         {/* Conteúdo */}
-                        <div className="flex-1 overflow-auto p-6 grid grid-cols-1 md:grid-cols-2 gap-6 bg-[url('./assets/bg_sombria.png')] bg-cover bg-blend-overlay bg-zinc-900/90">
+                        <div className="flex-1 overflow-auto p-4 md:p-6 grid grid-cols-1 md:grid-cols-2 gap-6 bg-[url('./assets/bg_sombria.png')] bg-cover bg-blend-overlay bg-zinc-900/90">
                             {/* Lista de Receitas */}
                             <div className="space-y-4">
                                 <div className="flex gap-2 mb-4">
@@ -654,7 +654,7 @@
                             {/* Detalhes / Inventário Simplificado de Ingredientes */}
                             <div className="bg-black/40 rounded-xl p-4 border border-zinc-800 h-fit sticky top-0">
                                 <h3 className="text-zinc-400 font-bold mb-4 border-b border-zinc-800 pb-2">Seus Ingredientes</h3>
-                                <div className="grid grid-cols-4 gap-2">
+                                <div className="grid grid-cols-3 md:grid-cols-4 gap-2">
                                     {/* Mostra apenas ingredientes que o jogador tem */}
                                     {Object.entries(
                                         jogador.inventario.reduce((acc, item) => {
@@ -3169,7 +3169,7 @@
                         </div>
 
                         {/* Middle Column: Ações (Nova Coluna Solicitada) */}
-                        <div className="w-full md:w-48 h-auto md:h-full flex-shrink-0 order-2 md:order-2 glass-card md:rounded-2xl p-3 md:p-4 flex flex-row md:flex-col gap-2 overflow-x-auto md:overflow-y-auto no-scrollbar items-center md:items-stretch">
+                        <div className="w-full md:w-48 h-auto md:h-full flex-shrink-0 order-2 md:order-2 glass-card md:rounded-2xl p-3 md:p-4 flex flex-row md:flex-col gap-2 overflow-x-auto md:overflow-y-auto no-scrollbar items-center md:items-stretch scroll-smooth snap-x snap-mandatory">
                             <h3 className="hidden md:block text-zinc-500 font-bold uppercase text-xs text-center mb-2 tracking-widest border-b border-white/5 pb-2">Ações</h3>
                             {(localAtual?.tipo === 'Cidade' || localAtual?.tipo === 'Vila') && (
                                 <>
@@ -3801,7 +3801,7 @@
                                             <div>
                                                 <h2 className="text-2xl font-fantasy text-amber-500 mb-6">📜 Guilda de Aventureiros (Rank {jogador.rankGuilda})</h2>
                                                 {jogador.missaoAtiva ? (
-                                                    <div className="text-center p-8 bg-blue-900/20 rounded-xl border border-blue-500/30">
+                                                    <div className="text-center p-4 md:p-8 bg-blue-900/20 rounded-xl border border-blue-500/30">
                                                         <h3 className="text-xl mb-2">Missão em Progresso</h3>
                                                         <p className="text-blue-300 font-bold text-lg">{jogador.missaoAtiva.titulo}</p>
                                                         <p className="text-zinc-400 mb-4">{jogador.missaoAtiva.desc}</p>
@@ -3934,7 +3934,7 @@
                                         {modal === 'taverna' && (
                                             <div>
                                                 <h2 className="text-2xl font-fantasy text-amber-500 mb-6">🍺 Taverna do Javali</h2>
-                                                <div className="bg-amber-900/20 p-6 rounded-xl border border-amber-500/30 text-center mb-6">
+                                                <div className="bg-amber-900/20 p-4 md:p-6 rounded-xl border border-amber-500/30 text-center mb-6">
                                                     <p className="text-xl mb-4 italic">"Bem-vindo, viajante! Sente-se, a lareira está quente."</p>
                                                     <div className="grid grid-cols-2 gap-4">
                                                         <button onClick={() => acaoTaverna('bebida')} className="p-4 bg-amber-800 hover:bg-amber-700 rounded-xl border border-amber-600 transition-all hover:scale-105">
