@@ -96,6 +96,132 @@
         .action-btn:active {
             transform: translateY(0);
         }
+
+        /* --- NOVAS ANIMAÇÕES & EFEITOS VISUAIS --- */
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0px);
+            }
+
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+
+        @keyframes pulse-glow {
+
+            0%,
+            100% {
+                box-shadow: 0 0 10px rgba(245, 158, 11, 0.2);
+            }
+
+            50% {
+                box-shadow: 0 0 25px rgba(245, 158, 11, 0.6);
+            }
+        }
+
+        @keyframes shake {
+            0% {
+                transform: translate(1px, 1px) rotate(0deg);
+            }
+
+            10% {
+                transform: translate(-1px, -2px) rotate(-1deg);
+            }
+
+            20% {
+                transform: translate(-3px, 0px) rotate(1deg);
+            }
+
+            30% {
+                transform: translate(3px, 2px) rotate(0deg);
+            }
+
+            40% {
+                transform: translate(1px, -1px) rotate(1deg);
+            }
+
+            50% {
+                transform: translate(-1px, 2px) rotate(-1deg);
+            }
+
+            60% {
+                transform: translate(-3px, 1px) rotate(0deg);
+            }
+
+            70% {
+                transform: translate(3px, 1px) rotate(-1deg);
+            }
+
+            80% {
+                transform: translate(-1px, -1px) rotate(1deg);
+            }
+
+            90% {
+                transform: translate(1px, 2px) rotate(0deg);
+            }
+
+            100% {
+                transform: translate(1px, -2px) rotate(-1deg);
+            }
+        }
+
+        @keyframes particle-fade {
+            0% {
+                opacity: 0;
+                transform: translateY(0) scale(0.5);
+            }
+
+            20% {
+                opacity: 0.8;
+            }
+
+            100% {
+                opacity: 0;
+                transform: translateY(-20px) scale(0);
+            }
+        }
+
+        .animate-float {
+            animation: float 6s ease-in-out infinite;
+        }
+
+        .animate-pulse-glow {
+            animation: pulse-glow 3s infinite;
+        }
+
+        .animate-shake {
+            animation: shake 0.5s;
+        }
+
+        /* Glassmorphism Premium */
+        .glass-card {
+            background: rgba(10, 10, 12, 0.6);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            /* Borda sutil */
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+        }
+
+        .glass-card-hover:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(245, 158, 11, 0.3);
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.6), inset 0 0 20px rgba(245, 158, 11, 0.05);
+        }
+
+        /* Overlay de Dia/Noite */
+        .overlay-time {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            /* Acima do BG, abaixo da UI */
+            pointer-events: none;
+            transition: background 5s ease-in-out;
+            mix-blend-mode: overlay;
+        }
     </style>
 </head>
 
@@ -201,8 +327,176 @@
             </div>
         );
 
+        // --- Componente: Sistema de Partículas ---
+        const ParticleSystem = ({ tipo }) => {
+            const canvasRef = React.useRef(null);
+
+            React.useEffect(() => {
+                const canvas = canvasRef.current;
+                const ctx = canvas.getContext('2d');
+                let animationFrameId;
+
+                let particles = [];
+                // Aumentei a contagem para ser mais visível
+                const particleCount = tipo === 'gelo' || tipo === 'vulcao' ? 60 : 40;
+
+                // Configurações por tipo
+                const configs = {
+                    'floresta': {
+                        color: 'rgba(120, 255, 120, ',
+                        sizeBase: 2, sizeVar: 2, // 2-4px
+                        speedY: -0.2, speedVar: 0.4, // Flutuar leve
+                        lifeBase: 100
+                    },
+                    'gelo': {
+                        color: 'rgba(220, 240, 255, ',
+                        sizeBase: 3, sizeVar: 2, // 3-5px (Neve maior)
+                        speedY: 1.5, speedVar: 0.5, // Cair rápido
+                        wind: 0.5,
+                        lifeBase: 200
+                    },
+                    'vulcao': {
+                        color: 'rgba(255, 100, 50, ',
+                        sizeBase: 2, sizeVar: 3,
+                        speedY: -1.0, speedVar: 0.5, // Subir (Cinzas)
+                        lifeBase: 150
+                    },
+                    'padrão': {
+                        color: 'rgba(255, 255, 200, ',
+                        sizeBase: 1, sizeVar: 2,
+                        speedY: 0, speedVar: 0.2,
+                        lifeBase: 100
+                    }
+                };
+
+                const cfg = configs[tipo] || configs['padrão'];
+
+                const resizeCanvas = () => {
+                    canvas.width = window.innerWidth;
+                    canvas.height = window.innerHeight;
+                };
+                window.addEventListener('resize', resizeCanvas);
+                resizeCanvas();
+
+                // Inicializa partículas
+                for (let i = 0; i < particleCount; i++) {
+                    particles.push(createParticle(canvas, cfg, true));
+                }
+
+                function createParticle(cvs, config, initial = false) {
+                    return {
+                        x: Math.random() * cvs.width,
+                        y: initial ? Math.random() * cvs.height : (config.speedY > 0 ? -10 : cvs.height + 10), // Spawn borda oposta
+                        vx: (Math.random() - 0.5) * (config.wind ? 2 : 0.5) + (config.wind || 0),
+                        vy: config.speedY + (Math.random() - 0.5) * config.speedVar,
+                        size: config.sizeBase + Math.random() * config.sizeVar,
+                        alpha: initial ? Math.random() : 0,
+                        life: config.lifeBase + Math.random() * 100,
+                        maxLife: config.lifeBase + 100
+                    };
+                }
+
+                const render = () => {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                    particles.forEach((p, i) => {
+                        p.x += p.vx;
+                        p.y += p.vy;
+                        p.life--;
+
+                        // Reset se sair da tela ou morrer
+                        const isDead = p.life <= 0;
+                        const outBounds = (p.y > canvas.height + 20 && cfg.speedY > 0) || (p.y < -20 && cfg.speedY < 0);
+
+                        if (isDead || outBounds) {
+                            particles[i] = createParticle(canvas, cfg);
+                            return;
+                        }
+
+                        // Fade in/out
+                        // Fade in user 20% life, Fade out last 20%
+                        const fadeIn = 20;
+                        const fadeOut = 30;
+                        if (p.alpha < 0.8 && p.life > p.maxLife - fadeIn) p.alpha += 0.05;
+                        if (p.life < fadeOut) p.alpha -= 0.03;
+
+                        // Desenha
+                        ctx.beginPath();
+                        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                        ctx.fillStyle = cfg.color + Math.max(0, p.alpha) + ')';
+                        ctx.fill();
+                    });
+
+                    animationFrameId = window.requestAnimationFrame(render);
+                };
+                render();
+
+                return () => {
+                    window.cancelAnimationFrame(animationFrameId);
+                    window.removeEventListener('resize', resizeCanvas);
+                };
+            }, [tipo]);
+
+            // Removi a opacidade do canvas para ficar mais brilho (0.6 -> 0.8 ou 1.0 e controlar no alpha)
+            return <canvas ref={canvasRef} className="fixed inset-0 pointer-events-none z-[1]" />;
+        };
+
         // --- Imagens de Bioma ---
         // MOVIDO PARA game-lib.js
+
+        // --- PREFIXOS E SUFIXOS (DIABLO STYLE) ---
+        const PREFIXOS = [
+            { nome: "Robusto", bonus: { maxHp: 10 } },
+            { nome: "Forte", bonus: { forca: 2 } },
+            { nome: "Ágil", bonus: { agilidade: 2 } },
+            { nome: "Intelectual", bonus: { inteligencia: 2 } },
+            { nome: "Da Montanha", bonus: { armadura: 2 } },
+            { nome: "Afiado", bonus: { dano: 1 } }, // Para armas
+            { nome: "Místico", bonus: { maxMana: 10 } }
+        ];
+
+        const SUFIXOS = [
+            { nome: "do Urso", bonus: { forca: 3, maxHp: 5 } },
+            { nome: "da Águia", bonus: { agilidade: 3, critico: 5 } },
+            { nome: "da Coruja", bonus: { inteligencia: 3, maxMana: 15 } },
+            { nome: "do Vampiro", bonus: { lifesteal: 5 } },
+            { nome: "da Destruição", bonus: { dano: 3 } },
+            { nome: "da Proteção", bonus: { armadura: 3 } }
+        ];
+
+        const gerarItemComAfixos = (nomeBase, tipo, bonusBase = {}) => {
+            let item = {
+                uid: Date.now() + Math.random(),
+                id: nomeBase.toLowerCase().replace(/ /g, "_"),
+                nome: nomeBase,
+                tipo: tipo,
+                bonus: { ...bonusBase },
+                raridade: "Comum"
+            };
+
+            // Apenas Equipamentos e Ferramentas podem ter afixos
+            if (tipo !== 'Equipamento' && tipo !== 'Ferramenta') return item;
+
+            // Chance de Prefixo (30%)
+            if (Math.random() < 0.3) {
+                const pref = PREFIXOS[Math.floor(Math.random() * PREFIXOS.length)];
+                item.nome = `${pref.nome} ${item.nome}`;
+                item.raridade = "Mágico";
+                for (let k in pref.bonus) item.bonus[k] = (item.bonus[k] || 0) + pref.bonus[k];
+            }
+
+            // Chance de Sufixo (30%)
+            if (Math.random() < 0.3) {
+                const suf = SUFIXOS[Math.floor(Math.random() * SUFIXOS.length)];
+                item.nome = `${item.nome} ${suf.nome}`;
+                if (item.raridade === "Mágico") item.raridade = "Raro";
+                else item.raridade = "Mágico";
+
+                for (let k in suf.bonus) item.bonus[k] = (item.bonus[k] || 0) + suf.bonus[k];
+            }
+
+            return item;
+        };
 
         const MenuPrincipal = ({ onNovo, onContinuar, onCarregar, temSave }) => (
             <div className="min-h-screen flex flex-col items-center justify-center bg-black p-4 bg-[url('https://images.unsplash.com/photo-1605806616949-1e87b487bc2a?q=80&w=2560')] bg-cover relative">
@@ -222,6 +516,176 @@
             </div>
         );
 
+        // --- TELA DE ALQUIMIA ---
+        const TelaAlquimia = ({ jogador, setJogador, onVoltar }) => {
+            const [filtro, setFiltro] = React.useState('Todos');
+
+            // Filtra receitas
+            const receitasFiltradas = RECEITAS_ALQUIMIA.filter(r => {
+                if (filtro === 'Todos') return true;
+                if (filtro === 'Poção' && r.resultado.includes('pocao')) return true;
+                if (filtro === 'Mana' && r.resultado.includes('mana')) return true;
+                if (filtro === 'Buff' && !r.resultado.includes('pocao') && !r.resultado.includes('mana')) return true;
+                return false;
+            });
+
+            const craftar = (receita) => {
+                // Checar Nível - Restrição de Guilda/Nível de Personagem? Vamos usar Nível do char por enquanto.
+                // Idealmente teríamos uma Skill "Alquimia", mas vamos simplificar.
+                if (jogador.nivel < receita.nivelReq) {
+                    alert(`Nível insuficiente! Requer Nível ${receita.nivelReq}.`);
+                    return;
+                }
+
+                // Checar Ingredientes
+                const temTudo = receita.inputs.every(input => {
+                    const itemNoInv = jogador.inventario.find(i => i.id === input.id);
+                    // Como não temos stack count ainda no inventário (cada item é um obj),
+                    // precisamos contar quantos objetos com aquele ID existem.
+                    const count = jogador.inventario.filter(i => i.id === input.id).length;
+                    return count >= input.qtd;
+                });
+
+                if (!temTudo) {
+                    alert("Ingredientes insuficientes!");
+                    return;
+                }
+
+                // Consumir Ingredientes
+                let novoInv = [...jogador.inventario];
+                receita.inputs.forEach(input => {
+                    for (let i = 0; i < input.qtd; i++) {
+                        const idx = novoInv.findIndex(item => item.id === input.id);
+                        if (idx !== -1) novoInv.splice(idx, 1);
+                    }
+                });
+
+                // Adicionar Resultado
+                // Busca dados completos do item resultado em ITENS_LOJA ou cria genérico se não tiver lá
+                let itemResultado = ITENS_LOJA.find(i => i.id === receita.resultado);
+                if (!itemResultado) {
+                    // Se não tiver na lista de loja (ex: Antidoto talvez não esteja), cria manual
+                    itemResultado = { id: receita.resultado, nome: "Item Alquímico", tipo: "Consumivel", desc: "Criado por alquimia." };
+                }
+
+                novoInv.push({ ...itemResultado, uid: Date.now() });
+
+                setJogador(prev => ({
+                    ...prev,
+                    inventario: novoInv
+                }));
+                alert(`Sucesso! Você criou ${itemResultado.nome}.`);
+            };
+
+            const getCount = (itemId) => jogador.inventario.filter(i => i.id === itemId).length;
+
+            return (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-slide">
+                    <div className="bg-zinc-900 border border-zinc-700 rounded-xl w-full max-w-4xl h-[80vh] flex flex-col shadow-2xl overflow-hidden">
+                        {/* Header */}
+                        <div className="p-6 border-b border-zinc-700 bg-zinc-950 flex justify-between items-center">
+                            <div>
+                                <h2 className="text-3xl font-medieval text-purple-400">Laboratório de Alquimia</h2>
+                                <p className="text-zinc-500 text-sm">Misture ingredientes para criar potentes elixires.</p>
+                            </div>
+                            <button onClick={onVoltar} className="bg-zinc-800 hover:bg-zinc-700 text-white px-4 py-2 rounded-lg">
+                                Fechar
+                            </button>
+                        </div>
+
+                        {/* Conteúdo */}
+                        <div className="flex-1 overflow-auto p-6 grid grid-cols-1 md:grid-cols-2 gap-6 bg-[url('./assets/bg_sombria.png')] bg-cover bg-blend-overlay bg-zinc-900/90">
+                            {/* Lista de Receitas */}
+                            <div className="space-y-4">
+                                <div className="flex gap-2 mb-4">
+                                    {['Todos', 'Poção', 'Mana', 'Buff'].map(f => (
+                                        <button key={f} onClick={() => setFiltro(f)} className={`px-3 py-1 rounded text-sm ${filtro === f ? 'bg-purple-600 text-white' : 'bg-zinc-800 text-zinc-400'}`}>
+                                            {f}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                {receitasFiltradas.map(receita => {
+                                    // Verifica se pode craftar para estilizar
+                                    const temNivel = jogador.nivel >= receita.nivelReq;
+                                    const temIngredientes = receita.inputs.every(input => getCount(input.id) >= input.qtd);
+                                    const podeCraftar = temNivel && temIngredientes;
+
+                                    // Busca item resultado para nome/desc
+                                    const itemRes = ITENS_LOJA.find(i => i.id === receita.resultado) || { nome: receita.resultado };
+
+                                    return (
+                                        <div key={receita.id} className={`p-4 rounded-xl border ${podeCraftar ? 'border-purple-500/50 bg-zinc-900/80' : 'border-zinc-800 bg-black/60'} relative group transition-all hover:bg-zinc-800`}>
+                                            <div className="flex justify-between items-start mb-2">
+                                                <h3 className={`font-bold text-lg ${podeCraftar ? 'text-purple-300' : 'text-zinc-500'}`}>{itemRes.nome}</h3>
+                                                <span className={`text-xs px-2 py-1 rounded ${temNivel ? 'bg-zinc-800 text-zinc-400' : 'bg-red-900 text-red-200'}`}>
+                                                    Lvl {receita.nivelReq}
+                                                </span>
+                                            </div>
+                                            <p className="text-zinc-500 text-sm mb-3 italic">{receita.desc}</p>
+
+                                            {/* Ingredientes */}
+                                            <div className="space-y-1 mb-4">
+                                                {receita.inputs.map(input => {
+                                                    const qtd = getCount(input.id);
+                                                    const itemInput = ITENS_LOJA.find(i => i.id === input.id) || { nome: input.id }; // Fallback se não achar
+                                                    const cor = qtd >= input.qtd ? 'text-green-400' : 'text-red-400';
+                                                    return (
+                                                        <div key={input.id} className="flex justify-between text-sm">
+                                                            <span className="text-zinc-400">{itemInput.nome || input.id}</span>
+                                                            <span className={cor}>{qtd}/{input.qtd}</span>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+
+                                            <button
+                                                onClick={() => craftar(receita)}
+                                                disabled={!podeCraftar}
+                                                className={`w-full py-2 rounded font-bold transition-colors ${podeCraftar ? 'bg-purple-600 hover:bg-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.4)]' : 'bg-zinc-800 text-zinc-600 cursor-not-allowed'}`}
+                                            >
+                                                {podeCraftar ? 'CRIAR' : 'Indisponível'}
+                                            </button>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            {/* Detalhes / Inventário Simplificado de Ingredientes */}
+                            <div className="bg-black/40 rounded-xl p-4 border border-zinc-800 h-fit sticky top-0">
+                                <h3 className="text-zinc-400 font-bold mb-4 border-b border-zinc-800 pb-2">Seus Ingredientes</h3>
+                                <div className="grid grid-cols-4 gap-2">
+                                    {/* Mostra apenas ingredientes que o jogador tem */}
+                                    {Object.entries(
+                                        jogador.inventario.reduce((acc, item) => {
+                                            if (item.tipo === 'Ingrediente') {
+                                                acc[item.id] = (acc[item.id] || 0) + 1;
+                                            }
+                                            return acc;
+                                        }, {})
+                                    ).map(([id, qtd]) => {
+                                        const dadosItem = ITENS_LOJA.find(i => i.id === id) || { nome: id };
+                                        return (
+                                            <div key={id} className="bg-zinc-900 p-2 rounded border border-zinc-700 text-center" title={dadosItem.nome}>
+                                                <div className="text-2xl mb-1">🌿</div>
+                                                <div className="text-xs text-zinc-300 truncate">{dadosItem.nome}</div>
+                                                <div className="text-xs text-zinc-500">x{qtd}</div>
+                                            </div>
+                                        );
+                                    })}
+                                    {jogador.inventario.filter(i => i.tipo === 'Ingrediente').length === 0 && (
+                                        <div className="col-span-4 text-center text-zinc-600 py-4">
+                                            Você não possui ingredientes. Explore o mundo para encontrar ervas e itens.
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
         const App = () => {
             const [view, setView] = React.useState('landing'); // Começa na Landing Page
 
@@ -238,6 +702,231 @@
             const [tempoAteCampeonato, setTempoAteCampeonato] = React.useState(600); // 10 minutos (600s)
             const [rodadaCampeonato, setRodadaCampeonato] = React.useState(0);
             const [campeonatoAtivo, setCampeonatoAtivo] = React.useState(false);
+            const [dialogoNpc, setDialogoNpc] = React.useState(null); // { npc: object, step: 0 }
+
+            // --- ESTADO MINIGAME ---
+            const [minigame, setMinigame] = React.useState({ active: false, pos: 50, direction: 1, type: null, target: [45, 55], speed: 1.5 });
+
+            // --- ESTADO BLACKJACK ---
+            const [blackjack, setBlackjack] = React.useState({
+                ativo: false,
+                baralho: [],
+                maoJogador: [],
+                maoDealer: [],
+                aposta: 0,
+                turno: 'jogador', // 'jogador' | 'dealer' | 'fim'
+                resultado: null // 'vitoria' | 'derrota' | 'empate' | 'blackjack'
+            });
+            const [apostaInput, setApostaInput] = React.useState(10);
+
+            // --- ESTADO INVASÃO ---
+            const [invasao, setInvasao] = React.useState({ ativa: false, inimigosRestantes: 0, nivel: 1 });
+
+            // --- SISTEMA DE COMBATE (Defesa da Vila) ---
+            const defenderVila = () => {
+                // Gera 4-5 monstros de nível +2 que o jogador
+                const qtd = Math.floor(Math.random() * 2) + 4;
+                const novosMonstros = [];
+                const biomasInvasores = ['Floresta', 'Caverna', 'Vulcão', 'Gelo'];
+                const biomaSorteado = biomasInvasores[Math.floor(Math.random() * biomasInvasores.length)]; // Invasão temática
+
+                for (let i = 0; i < qtd; i++) {
+                    const mob = Gerador.monstro(jogador.nivel + 2, biomaSorteado, cicloDia);
+                    mob.nome = `[Invasor] ${mob.nome}`;
+                    mob.uid = Date.now() + i;
+                    // Buff de Invasão
+                    mob.hp = Math.floor(mob.hp * 1.2);
+                    mob.dano = Math.floor(mob.dano * 1.1);
+                    novosMonstros.push(mob);
+                }
+
+                setMonstros(novosMonstros);
+                setInvasao(prev => ({ ...prev, inimigosRestantes: qtd }));
+                addLog(`⚔️ VOCÊ SAIU PARA DEFENDER A VILA! ${qtd} INIMIGOS UIVAM!`, 'perigo');
+            };
+
+            // Inicializa propriedades e reputação se não existirem (Migração)
+            React.useEffect(() => {
+                if (jogador) {
+                    let update = false;
+                    let novo = { ...jogador };
+
+                    if (!novo.propriedades) {
+                        novo.propriedades = [];
+                        novo.ultimoColeta = Date.now();
+                        update = true;
+                    }
+                    if (typeof novo.reputacao === 'undefined') {
+                        novo.reputacao = 0;
+                        update = true;
+                    }
+                    if (typeof novo.conjuge === 'undefined') {
+                        novo.conjuge = null;
+
+                        // Migração Aliado (String -> Objeto)
+                        if (typeof novo.aliado === 'string') {
+                            novo.aliado = { nome: novo.aliado, classe: "Companheiro", dano: 10, tipo: "Companheiro" };
+                        } else if (!novo.aliado) {
+                            novo.aliado = null;
+                        }
+                        // Verifica habilidades do aliado se existirem no game-lib
+                        if (novo.aliado) {
+                            // Tenta enriquecer o aliado com skills do "banco de dados" se ele não tiver
+                            if (!novo.aliado.habilidades) {
+                                let dbRef = null;
+                                if (novo.aliado.tipo === 'Mercenario') dbRef = MERCENARIOS.find(m => m.nome === novo.aliado.nome);
+                                else {
+                                    // Busca em NPCs
+                                    Object.values(NPCS).forEach(lista => {
+                                        const found = lista.find(n => n.nome === novo.aliado.nome);
+                                        if (found) dbRef = found;
+                                    });
+                                }
+                                if (dbRef && dbRef.habilidades) {
+                                    novo.aliado.habilidades = dbRef.habilidades;
+                                }
+                            }
+                        }
+
+                        update = true;
+                    }
+                    if (update) setJogador(novo);
+                }
+            }, [jogador]);
+
+            // --- SISTEMA DE CASAMENTO E ALIADOS ---
+            const casar = (npc) => {
+                const anel = jogador.inventario.find(i => i.id === 'anel_noivado');
+                if (!anel) return addLog("Você precisa de um Anel de Noivado!", "erro");
+
+                setJogador(p => ({
+                    ...p,
+                    ouro: p.ouro, // Mantem ouro
+                    inventario: p.inventario.filter(i => i.uid !== anel.uid), // Remove anel
+                    conjuge: npc.nome,
+                    aliado: { nome: npc.nome, classe: npc.classe || "Aldeão", dano: npc.dano || 5, tipo: 'Conjuge', habilidades: npc.habilidades || [] }
+                }));
+                addLog(`Você se casou com ${npc.nome}! ❤️`, "sucesso");
+                setDialogoNpc(null);
+                setModal(null);
+                alert(`Parabéns! Você e ${npc.nome} agora são parceiros para toda a vida.`);
+            };
+
+            const contratarMercenario = (merc) => {
+                if (jogador.ouro < merc.custo) return addLog("Ouro insuficiente!", "erro");
+
+                // Se já tem aliado, substitui
+                const msg = jogador.aliado ? `Substituiu ${jogador.aliado.nome} por ${merc.nome}.` : `Contratou ${merc.nome}!`;
+
+                setJogador(p => ({
+                    ...p,
+                    ouro: p.ouro - merc.custo,
+                    ouro: p.ouro - merc.custo,
+                    aliado: { nome: merc.nome, classe: merc.classe, dano: merc.dano, tipo: 'Mercenario', habilidades: merc.habilidades || [] }
+                }));
+                addLog(msg, "sucesso");
+            };
+
+            const dispensarAliado = () => {
+                if (!jogador.aliado) return;
+                addLog(`${jogador.aliado.nome} deixou o grupo.`, "comum");
+                setJogador(p => ({ ...p, aliado: null }));
+            };
+
+            const convidarConjuge = () => {
+                if (!jogador.conjuge) return;
+                // Busca dados do NPC original para restaurar stats de combate
+                // Simplificação: Vamos salvar os stats base no próprio jogador 'dadosConjuge' ou buscar na lista de NPCs.
+                // Busca Global (Pode ser lento se tiver muitos, mas ok aqui)
+                let dados = null;
+                Object.values(NPCS).forEach(lista => {
+                    const found = lista.find(n => n.nome === jogador.conjuge);
+                    if (found) dados = found;
+                });
+
+                if (dados) {
+                    setJogador(p => ({
+                        ...p,
+                        aliado: { nome: dados.nome, classe: dados.classe || "Companheiro", dano: dados.dano || 10, tipo: 'Conjuge' }
+                    }));
+                    addLog(`${dados.nome} juntou-se a você!`, "sucesso");
+                }
+            };
+
+
+            const comprarImovel = (imovel) => {
+                if (jogador.ouro < imovel.preco) return addLog("Dinheiro insuficiente!", "perigo");
+                if (jogador.propriedades.includes(imovel.id)) return addLog("Você já possui este imóvel!", "comum");
+
+                setJogador(p => ({
+                    ...p,
+                    ouro: p.ouro - imovel.preco,
+                    propriedades: [...(p.propriedades || []), imovel.id]
+                }));
+                addLog(`Comprou ${imovel.nome}!`, "sucesso");
+                if (imovel.tipo === 'Casa') alert("Parabéns! Agora você tem uma casa. Durma nela para recuperar tudo de graça.");
+                if (imovel.tipo === 'Comercio') alert("investimento realizado! Volte periodicamente para coletar seus lucros.");
+            };
+
+            const coletarRenda = (imovel) => {
+                // Lógica simplificada: Renda acumula por minuto real (max 24h)
+                // Mas como o jogo roda em sessao, vamos fazer baseado em ciclos de dia ou tempo decorrido desde ultimo save?
+                // Vamos usar Timestamp real para permitir "Idle" progress entre saves.
+
+                const now = Date.now();
+                const last = jogador.ultimoColeta || now;
+                const diffSeconds = (now - last) / 1000;
+
+                // Renda por dia (86400s) -> imovel.renda
+                // Vamos acelerar: Renda estipulada é por "Dia de Jogo" (que dura ~5 min se jogar ativo).
+                // Vamos dar a renda a cada 5 minutos reais.
+
+                // Melhor: Renda fixa acumulada.
+                // Simples: O jogador clica "Coletar" e ganha X * Horas passadas?
+                // Vamos fazer um cooldown de 10 min para coleta.
+
+                // Abordagem Atual: O Botão Coletar fica disponivel se passou X tempo.
+            };
+
+            const calcularLucroPendente = () => {
+                if (!jogador.propriedades) return 0;
+                const now = Date.now();
+                const last = jogador.ultimoColeta || now;
+                const diffMinutes = (now - last) / 60000; // Minutos passados
+
+                // Ganha 1% da renda diária por minuto
+                let total = 0;
+                jogador.propriedades.forEach(pid => {
+                    const im = IMOVEIS.find(i => i.id === pid);
+                    if (im && im.tipo === 'Comercio') {
+                        total += Math.floor(im.renda * (diffMinutes / 10)); // 10% da renda da tabela a cada minuto? Não.
+                        // Renda tabela = "por dia". Vamos dizer que o dia tem 20 minutos.
+                        // Então renda / 20 por minuto.
+                        total += Math.floor((im.renda / 20) * diffMinutes);
+                    }
+                });
+                return Math.floor(total);
+            };
+
+            const realizarColeta = () => {
+                const lucro = calcularLucroPendente();
+                if (lucro <= 0) return addLog("Nenhum lucro gerado ainda. Espere mais.", "comum");
+
+                setJogador(p => ({
+                    ...p,
+                    ouro: p.ouro + lucro,
+                    ultimoColeta: Date.now()
+                }));
+                addLog(`Recebeu ${lucro} ouro de seus comércios!`, "sucesso");
+            };
+
+            const dormirEmCasa = () => {
+                avancarTempo(5);
+                setJogador(p => ({ ...p, hp: p.maxHp, mana: p.maxMana }));
+                addLog("Você dormiu na sua casa. Vida e Mana cheias!", "sucesso");
+                salvarJogo(); // Casa salva o jogo
+                setModal(null);
+            };
 
             // --- ESTADO DUNGEON ---
             const [dungeonAtiva, setDungeonAtiva] = React.useState(null); // Objeto da Masmorra
@@ -247,6 +936,14 @@
             const [cicloDia, setCicloDia] = React.useState('Manhã');
             const [progressoDia, setProgressoDia] = React.useState(0);
             const [eventoAleatorioCd, setEventoAleatorioCd] = React.useState(Date.now() + 60000); // 1 min inicial safe
+
+            // --- ESTADO VFX ---
+            const [screenShake, setScreenShake] = React.useState(false);
+
+            const triggerShake = () => {
+                setScreenShake(true);
+                setTimeout(() => setScreenShake(false), 500);
+            };
 
             const logRef = React.useRef(null);
 
@@ -342,7 +1039,7 @@
                 }
 
                 setJogador({
-                    nome: dados.nome, raca: dados.raca, classe: dados.classe,
+                    nome: dados.nome, raca: dados.raca, classe: dados.classe, sexo: dados.sexo,
                     nivel: 1, xp: 0, proximoXp: 100,
                     hp: 20 + (stats.resistencia * 5) + hpExtra, maxHp: 20 + (stats.resistencia * 5) + hpExtra,
                     mana: 10 + (stats.resistencia * 5) + manaExtra, maxMana: 10 + (stats.resistencia * 5) + manaExtra,
@@ -350,7 +1047,8 @@
                     pontosAtributo: 0, // Pontos livres para distribuir
                     equipamento: { arma: null, armadura: null, acessorio: null, pet: null },
                     magias: magiasIniciais, inventario: [],
-                    rankGuilda: 'F', missoesCompletas: 0, missaoAtiva: null
+                    rankGuilda: 'F', missoesCompletas: 0, missaoAtiva: null,
+                    reputacao: 0 // Inicializa reputação
                 });
                 setSaveId(null); // Novo jogo não tem ID ainda
                 setMonstros([]); // Resetar monstros antigos
@@ -623,7 +1321,8 @@
                     const danoRolado = Math.floor(danoBase * (1 + Math.random() * 0.2));
 
                     if (!habilidade.area) {
-                        addLog(`Usou ${habilidade.nome} em ${monstros[0].nome} causando ${danoRolado} de dano!`, 'magia');
+                        // Log genérico inicial, o detalhado vem no loop
+                        // addLog(`Usou ${habilidade.nome} em ${monstros[0].nome}...`, 'magia');
                     }
 
                     // Pet (Só ataca o primeiro alvo para não ficar muito OP no AoE)
@@ -637,20 +1336,96 @@
                         setJogador(p => ({ ...p, hp: Math.min(p.maxHp, p.hp + jogador.equipamento.pet.bonus.cura) }));
                     }
 
+                    // --- TURNO DO ALIADO (NOVO) ---
+                    // Executa ANTES de aplicar dano para calcular buffs ou danos extras
+                    let danoAliadoTotal = 0;
+                    let curaAliado = 0;
+
+                    if (jogador.aliado) {
+                        const aliado = jogador.aliado;
+                        let usouSkill = false;
+
+                        // Tenta usar habilidade
+                        if (aliado.habilidades && aliado.habilidades.length > 0) {
+                            // Lógica de skill do aliado está em 'alliedSkillCheck' que retorna true se usou?
+                            // Melhor fazer inline para ter acesso ao escopo 'monstros', 'jogador', etc.
+
+                            // Escolhe habilidade baseada em chance
+                            const skill = aliado.habilidades.find(h => Math.random() < h.chance);
+
+                            if (skill) {
+                                usouSkill = true;
+                                if (skill.tipo === 'Cura') {
+                                    // Só cura se precisar
+                                    if (jogador.hp < jogador.maxHp * 0.8) {
+                                        curaAliado = skill.poder;
+                                        addLog(`${aliado.nome} usou ${skill.nome}! Recuperou ${curaAliado} PV.`, 'cura');
+                                    } else {
+                                        usouSkill = false; // Não precisava curar, ataca normal
+                                    }
+                                } else if (['Físico', 'Mágico', 'DoT', 'Físico/Sagrado'].includes(skill.tipo)) {
+                                    danoAliadoTotal = skill.poder; // Dano fixo da skill
+                                    addLog(`${aliado.nome} usou ${skill.nome}! Causou ${danoAliadoTotal} de dano!`, 'magia');
+                                } else if (skill.tipo === 'Buff') {
+                                    // Buff simples: Cura mana ou dá dano extra neste turno
+                                    // Vamos simular buff de defesa/ataque curando um pouco de mana por enquanto ou bonus de dano
+                                    addLog(`${aliado.nome} usou ${skill.nome}!`, 'magia');
+                                    // Buff genérico não implementado complexidade total, vamos dar dano extra 
+                                    danoAliadoTotal = Math.floor(skill.poder / 2);
+                                }
+                            }
+                        }
+
+                        if (!usouSkill) {
+                            // Ataque Básico
+                            danoAliadoTotal += Math.max(1, aliado.dano || 5);
+                            addLog(`${aliado.nome} atacou! +${Math.max(1, aliado.dano || 5)} dano.`, 'comum');
+                        }
+                    }
+
+                    // Aplicar Cura do Aliado/Pet
+                    if (curaAliado > 0) {
+                        setJogador(p => ({ ...p, hp: Math.min(p.maxHp, p.hp + curaAliado) }));
+                    }
+
                     // Processamento de Dano e Mortes
                     let xpTotal = 0;
                     let ouroTotal = 0;
                     let algunsMorreu = false;
 
                     const novosMonstros = monstros.map((m, index) => {
+                        let danoRecebido = 0;
+
+                        // Dano do Jogador
                         if (indicesAlvos.includes(index)) {
-                            let danoAplicado = danoRolado;
-                            if (index === 0) danoAplicado += danoPet; // Pet só bônus no primeiro
+                            // Calcula Elemento
+                            const elemSkill = habilidade.elemento || 'Neutro';
+                            const elemDef = m.elemento || 'Neutro';
+                            const mult = calcularMultiplicadorElemental(elemSkill, elemDef);
 
-                            const novoHp = m.hp - danoAplicado;
+                            const danoFinal = Math.floor(danoRolado * mult);
+                            danoRecebido += danoFinal;
 
-                            if (habilidade.area) addLog(`${m.nome} sofreu ${danoAplicado} de dano.`, 'magia');
+                            if (index === 0) danoRecebido += danoPet;
 
+                            // Log detalhado
+                            let msgExtra = "";
+                            if (mult > 1) msgExtra = " (Superefetivo! 🔥)";
+                            if (mult < 1) msgExtra = " (Resistido 🛡️)";
+
+                            if (habilidade.area || indicesAlvos.length === 1) {
+                                addLog(`${m.nome} sofreu ${danoFinal}${msgExtra} de dano.`, 'magia');
+                            }
+                        }
+
+                        // Dano do Aliado (Ataca sempre o primeiro ou alvo focado? Vamos fazer atacar o 0 por padrão ou aleatório?)
+                        // Aliado inteligente: foca no alvo do jogador (index 0)
+                        if (index === 0) {
+                            danoRecebido += danoAliadoTotal;
+                        }
+
+                        if (danoRecebido > 0) {
+                            const novoHp = m.hp - danoRecebido;
                             if (novoHp <= 0) {
                                 xpTotal += (m.xp || 0);
                                 ouroTotal += (m.ouro || 0);
@@ -716,6 +1491,25 @@
                             return;
                         }
 
+                        // INVASÃO VITÓRIA
+                        if (invasao.ativa && novosMonstros.length === 0) {
+                            addLog("🎉 A INVASÃO FOI REPELIDA! A VILA ESTÁ SALVA!", 'sucesso');
+                            setInvasao({ ativa: false, inimigosRestantes: 0, nivel: 1 });
+
+                            const repGanho = 50;
+                            const ouroGanho = 500 * jogador.nivel;
+
+                            setJogador(p => ({
+                                ...p,
+                                reputacao: (p.reputacao || 0) + repGanho,
+                                ouro: p.ouro + ouroGanho
+                            }));
+
+                            addLog(`Herói da Vila! Recebeu +${repGanho} Reputação e 💰${ouroGanho} Ouro da prefeitura.`, 'loot');
+                            alert(`VITÓRIA!\n\nVocê salvou a Vila Verdejante!\nRecompensa: ${ouroGanho}g e +${repGanho} Reputação.`);
+                            return;
+                        }
+
                     } else {
                         // Ninguém morreu, só gastou mana
                         setJogador(p => ({ ...p, mana: p.mana - custo }));
@@ -730,6 +1524,7 @@
                             addLog(`${m.nome} atacou! -${danoM} PV`, 'perigo');
                         });
                         if (danoTotal > 0) {
+                            triggerShake();
                             setJogador(p => {
                                 const novoHp = Math.max(0, p.hp - danoTotal);
                                 if (p.hp > 0 && novoHp <= 0) {
@@ -770,16 +1565,22 @@
                     }
                 } else {
                     addLog("Falha ao fugir! Você tropeçou... 😱", 'perigo');
-                    // Perde o turno, monstros atacam (Lógica inline, pois turnoMonstro não existe como func)
+                    // Perde o turno, monstros atacam (Fuga falhou)
                     let danoTotal = 0;
                     monstros.forEach(m => {
-                        // Dano do monstro x Armadura do Jogador
-                        const danoM = Math.max(1, m.dano - atributos.armadura);
+                        const elemAtk = m.elemento || 'Neutro';
+                        const elemDef = jogador.equipamento.armadura ? jogador.equipamento.armadura.elemento || 'Neutro' : 'Neutro';
+                        const mult = calcularMultiplicadorElemental(elemAtk, elemDef);
+
+                        let danoM = Math.max(1, m.dano - atributos.armadura);
+                        danoM = Math.floor(danoM * mult);
+
                         danoTotal += danoM;
                         addLog(`${m.nome} atacou! -${danoM} PV`, 'perigo');
                     });
 
                     if (danoTotal > 0) {
+                        triggerShake();
                         setJogador(p => {
                             const novoHp = Math.max(0, p.hp - danoTotal);
                             if (p.hp > 0 && novoHp <= 0) {
@@ -911,7 +1712,15 @@
                 // Dano Jogador -> Monstro
                 // Balanceamento: Usa o MAIOR atributo (Força, Habilidade ou PdF) para não punir Magos/Arqueiros
                 const atributoOfensivo = Math.max(atributos.forca, atributos.habilidade, atributos.poderDeFogo);
+                // Elemento do Ataque (Arma ou Neutro)
+                const elementoAtaque = jogador.equipamento.arma ? jogador.equipamento.arma.elemento || 'Neutro' : 'Físico';
+                const elementoDefesa = alvo.elemento || 'Neutro';
+                const mult = calcularMultiplicadorElemental(elementoAtaque, elementoDefesa);
+
                 let dano = Math.floor(atributoOfensivo + (Math.random() * 3));
+
+                // Aplica Multiplicador
+                dano = Math.floor(dano * mult);
 
                 // Traço Racial: Orc (Fúria)
                 if (jogador.raca === 'Orc') {
@@ -920,7 +1729,18 @@
 
                 let novoHpAlvo = alvo.hp - dano;
 
-                addLog(`Você causou ${dano} de dano em ${alvo.nome}.`);
+                let iconeElem = "";
+                if (mult > 1) iconeElem = "🔥 CRÍTICO ELEMENTAL! ";
+                if (mult < 1) iconeElem = "🛡️ RESISTIDO! ";
+
+                addLog(`${iconeElem}Você causou ${dano} de dano em ${alvo.nome}.`);
+
+                // Ação do Aliado (Se houver)
+                if (jogador.aliado && novoHpAlvo > 0) {
+                    const danoAliado = jogador.aliado.dano || 5;
+                    novoHpAlvo -= danoAliado;
+                    addLog(`${jogador.aliado.nome} atacou ${alvo.nome} causando ${danoAliado} de dano!`, 'dano');
+                }
 
                 // Ação do Pet
                 if (jogador.equipamento.pet) {
@@ -1004,18 +1824,19 @@
 
                     // Drop Chance
                     if (alvo.drop && Math.random() > 0.4) {
-                        const itemDrop = {
-                            id: Date.now(),
-                            nome: alvo.drop,
-                            tipo: "Material",
-                            desc: `Obtido de ${alvo.nome}`
-                        };
+                        let tipoDrop = "Material";
+                        let bonusDrop = {};
+
                         if (alvo.drop.includes("Lâmina") || alvo.drop.includes("Armadura") || alvo.drop.includes("Machado")) {
-                            itemDrop.tipo = "Equipamento";
-                            itemDrop.bonus = alvo.drop.includes("Armadura") ? { armadura: 5 } : { forca: 5 };
+                            tipoDrop = "Equipamento";
+                            bonusDrop = alvo.drop.includes("Armadura") ? { armadura: 5 } : { forca: 5, dano: 2 };
                         }
+
+                        const itemDrop = gerarItemComAfixos(alvo.drop, tipoDrop, bonusDrop);
+                        itemDrop.desc = `Obtido de ${alvo.nome}`;
+
                         setJogador(p => ({ ...p, inventario: [...p.inventario, itemDrop] }));
-                        addLog(`Drop: ${alvo.drop}`, 'loot');
+                        addLog(`Drop: ${itemDrop.nome}`, 'loot');
                     }
 
                     // Se estiver em Dungeon, avança sala (não respawna monstro normal)
@@ -1063,6 +1884,17 @@
                                 return { ...p, missaoAtiva: atualizado };
                             });
                         }
+                        // Missão de NPC
+                        if (jogador.missaoAtiva.req && jogador.missaoAtiva.req.tipo === 'monstro' && alvo.nome.includes(jogador.missaoAtiva.req.alvo)) {
+                            setJogador(p => {
+                                const missao = p.missaoAtiva;
+                                const atualizado = { ...missao, atual: Math.min((missao.atual || 0) + 1, missao.req.qtd) };
+                                if (atualizado.atual >= atualizado.req.qtd && (missao.atual || 0) < missao.req.qtd) {
+                                    addLog("Objetivo da missão de NPC cumprido! Volte ao NPC.", 'sucesso');
+                                }
+                                return { ...p, missaoAtiva: atualizado };
+                            });
+                        }
                     }
 
                     // Remove o morto
@@ -1072,9 +1904,22 @@
                 // Contra-Ataque dos Sobreviventes
                 let danoTotal = 0;
                 novosMonstros.forEach(m => {
-                    const danoM = Math.max(1, m.dano - atributos.armadura);
+                    const elemAtk = m.elemento || 'Neutro';
+                    // Jogador defende com Armadura (se tiver elemento) ou Corpo (Neutro)
+                    // Futuro: Resistência Racial?
+                    const elemDef = jogador.equipamento.armadura ? jogador.equipamento.armadura.elemento || 'Neutro' : 'Neutro';
+                    const mult = calcularMultiplicadorElemental(elemAtk, elemDef);
+
+                    let danoM = Math.max(1, m.dano - atributos.armadura);
+                    danoM = Math.floor(danoM * mult);
+
                     danoTotal += danoM;
-                    addLog(`${m.nome} atacou! -${danoM} PV`, 'perigo');
+
+                    let icon = "⚔️";
+                    if (mult > 1) icon = "🔥"; // Levou super efetivo
+                    if (mult < 1) icon = "🛡️"; // Resistiu
+
+                    addLog(`${icon} ${m.nome} atacou! -${danoM} PV`, 'perigo');
                 });
 
                 if (danoTotal > 0) {
@@ -1146,53 +1991,269 @@
             const minerar = () => {
                 if (monstros.length > 0) return addLog("Você não pode minerar em combate!", 'perigo');
 
-                // Verificar Picareta (Inventário ou Equipado?)
-                // Simplificação: Verifica se tem item "Ferramenta" no inventário ou acessório
                 const picaretas = [...jogador.inventario, jogador.equipamento.arma, jogador.equipamento.armadura, jogador.equipamento.acessorio]
                     .filter(i => i && i.tipo === 'Ferramenta');
 
                 if (picaretas.length === 0) return addLog("Você precisa de uma Picareta!", 'perigo');
 
-                // Pega a melhor picareta
+                // Inicia Minigame
+                // Dificuldade baseada na picareta? (Futuro)
+                // Speed: 1.5 (Normal) -> Aumenta se estiver cansado?
+                // Target: [40, 60] (20% chance)
+                setMinigame({
+                    active: true,
+                    type: 'mineracao',
+                    pos: 0,
+                    direction: 1,
+                    target: [40, 60],
+                    speed: 2 + (Math.random()) // Velocidade varia levemente
+                });
+            };
+
+            const resolverMinigame = () => {
+                if (!minigame.active) return;
+
+                const { pos, target } = minigame;
+                const hit = pos >= target[0] && pos <= target[1];
+
+                // Fecha minigame
+                setMinigame(prev => ({ ...prev, active: false }));
+
+                // Efeitos
+                avancarTempo(2);
+
+                const picaretas = [...jogador.inventario, jogador.equipamento.arma, jogador.equipamento.armadura, jogador.equipamento.acessorio]
+                    .filter(i => i && i.tipo === 'Ferramenta');
                 const melhorPicareta = picaretas.reduce((prev, current) => (prev.tier > current.tier) ? prev : current);
 
-                avancarTempo(2); // Minerar cansa e demora
+                if (hit) {
+                    // SUCESSO / CRÍTICO
+                    addLog("🎯 ACERTO PERFEITO! A rocha se partiu facilmente!", 'sucesso');
+                    triggerShake(); // Efeito visual de impacto
 
-                // Determinar Drops baseado no Local e Tier
-                let dropsPossiveis = [];
-                let chanceFalha = 0.2; // 20% de não vir nada
+                    // Drops (Melhorados)
+                    let dropsPossiveis = [];
+                    if (jogador.local === 'Mina Profunda') {
+                        dropsPossiveis.push({ id: 'minerio_ferro', chance: 0.6 });
+                        if (melhorPicareta.tier >= 2) dropsPossiveis.push({ id: 'minerio_ouro', chance: 0.4 });
+                        if (melhorPicareta.tier >= 2) dropsPossiveis.push({ id: 'minerio_mithril', chance: 0.2 });
+                        if (melhorPicareta.tier >= 3) dropsPossiveis.push({ id: 'minerio_adamantina', chance: 0.1 });
 
-                if (jogador.local === 'Mina Profunda') {
-                    // Mina Avançada
-                    dropsPossiveis.push({ id: 'minerio_ferro', chance: 0.5 });
-                    if (melhorPicareta.tier >= 2) dropsPossiveis.push({ id: 'minerio_ouro', chance: 0.3 });
-                    if (melhorPicareta.tier >= 2) dropsPossiveis.push({ id: 'minerio_mithril', chance: 0.1 });
-                    if (melhorPicareta.tier >= 3) dropsPossiveis.push({ id: 'minerio_adamantina', chance: 0.05 });
+                        // Chance Extrema de Equipamento (1%)
+                        if (Math.random() < 0.01) {
+                            const equipBase = ITENS_LOJA.filter(i => i.tipo === 'Equipamento' || i.tipo === 'Ferramenta');
+                            const randomEquip = equipBase[Math.floor(Math.random() * equipBase.length)];
+                            if (randomEquip) {
+                                const dropEquip = gerarItemComAfixos(randomEquip.nome, randomEquip.tipo, randomEquip.bonus);
+                                setJogador(p => ({ ...p, inventario: [...p.inventario, dropEquip] }));
+                                addLog(`💎 VOCÊ ENCONTROU UM ITEM RARO: ${dropEquip.nome}!`, 'sucesso');
+                            }
+                        }
+
+                    } else {
+                        dropsPossiveis.push({ id: 'minerio_cobre', chance: 0.8 });
+                        dropsPossiveis.push({ id: 'minerio_ferro', chance: 0.3 });
+                    }
+
+                    // Garante pelo menos um drop comum se falhar no RNG dos raros, ou dá buff
+                    const dropSorteado = dropsPossiveis.find(d => Math.random() < d.chance) || dropsPossiveis[0];
+
+                    if (dropSorteado) {
+                        const itemDrop = ITENS_LOJA.find(i => i.id === dropSorteado.id) || { nome: "Pedra Preciosa", id: "pedra", tipo: "Loot" };
+
+                        // Bônus de Quantidade no Crítico?
+                        const qtd = Math.random() > 0.7 ? 2 : 1;
+
+                        setJogador(p => {
+                            const novosItens = [];
+                            for (let k = 0; k < qtd; k++) novosItens.push({ ...itemDrop, uid: Date.now() + k });
+                            return { ...p, inventario: [...p.inventario, ...novosItens] };
+                        });
+                        addLog(`⛏️ CRÍTICO! Você conseguiu ${qtd}x ${itemDrop.nome}!`, 'loot');
+                    }
+
                 } else {
-                    // Mina da Vila (Básica)
-                    dropsPossiveis.push({ id: 'minerio_cobre', chance: 0.6 });
-                    dropsPossiveis.push({ id: 'minerio_ferro', chance: 0.1 }); // Raro na vila
-                }
+                    // FALHA / NORMAL (Se estiver perto)
+                    // Vamos considerar "Miss" como falha total ou apenas drop ruim?
+                    // Se erro feio (> 20 de distancia): Pedra
+                    // Se erro leve: Chance normal reduzida
 
-                // Rolar Loot
-                if (Math.random() < chanceFalha) {
-                    return addLog("Você bateu na pedra mas só achou poeira.", 'comum');
-                }
+                    const dist = Math.min(Math.abs(pos - target[0]), Math.abs(pos - target[1]));
 
-                const dropSorteado = dropsPossiveis.find(d => Math.random() < d.chance);
+                    if (dist > 30) {
+                        addLog("A picareta escorregou e você só conseguiu lascas de pedra.", 'comum');
+                        setJogador(p => ({ ...p, inventario: [...p.inventario, { nome: "Pedra", id: "pedra", tipo: "Lixo", uid: Date.now() }] }));
+                    } else {
+                        // Acerto "Ok" (Normal)
+                        addLog("Mineração concluída, mas poderia ter sido melhor.", 'comum');
 
-                if (dropSorteado) {
-                    const itemDrop = ITENS_LOJA.find(i => i.id === dropSorteado.id) || { nome: "Pedra", id: "pedra", tipo: "Lixo" }; // Fallback seguro
+                        // Drop Normal (Cópia da lógica antiga simplificada)
+                        let chanceFalha = 0.4; // Maior chance de falha
+                        if (Math.random() < chanceFalha) return addLog("Não encontrou nada útil.", 'comum');
 
-                    setJogador(p => ({
-                        ...p,
-                        inventario: [...p.inventario, { ...itemDrop, uid: Date.now() }]
-                    }));
-                    addLog(`⛏️ Você minerou: ${itemDrop.nome}!`, 'sucesso');
-                } else {
-                    addLog("Você encontrou apenas pedras sem valor.", 'comum');
+                        let dropsPossiveis = [];
+                        if (jogador.local === 'Mina Profunda') {
+                            dropsPossiveis.push({ id: 'minerio_ferro', chance: 0.4 });
+                            // Menos chance de raros
+                            if (melhorPicareta.tier >= 2) dropsPossiveis.push({ id: 'minerio_ouro', chance: 0.1 });
+                        } else {
+                            dropsPossiveis.push({ id: 'minerio_cobre', chance: 0.5 });
+                        }
+
+                        const dropSorteado = dropsPossiveis.find(d => Math.random() < d.chance);
+                        if (dropSorteado) {
+                            const itemDrop = ITENS_LOJA.find(i => i.id === dropSorteado.id);
+                            setJogador(p => ({ ...p, inventario: [...p.inventario, { ...itemDrop, uid: Date.now() }] }));
+                            addLog(`⛏️ Você minerou: ${itemDrop.nome}.`, 'sucesso');
+                        } else {
+                            addLog("Apenas pedras comuns.", 'comum');
+                        }
+                    }
                 }
             };
+
+            // --- BLACKJACK LOGIC ---
+            const criarBaralho = () => {
+                const naipes = ['♠', '♥', '♦', '♣'];
+                const valores = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
+                let deck = [];
+                for (let n of naipes) {
+                    for (let v of valores) {
+                        deck.push({ naipe: n, valor: v });
+                    }
+                }
+                return deck.sort(() => Math.random() - 0.5);
+            };
+
+            const valorMao = (mao) => {
+                let soma = 0;
+                let as = 0;
+                for (let carta of mao) {
+                    if (['J', 'Q', 'K'].includes(carta.valor)) soma += 10;
+                    else if (carta.valor === 'A') { soma += 11; as++; }
+                    else soma += parseInt(carta.valor);
+                }
+                while (soma > 21 && as > 0) {
+                    soma -= 10;
+                    as--;
+                }
+                return soma;
+            };
+
+            const blackjackIniciar = () => {
+                if (apostaInput <= 0) return addLog("Aposta inválida!", 'perigo');
+                if (jogador.ouro < apostaInput) return addLog("Ouro insuficiente para apostar!", 'perigo');
+
+                setJogador(p => ({ ...p, ouro: p.ouro - apostaInput }));
+
+                let deck = criarBaralho();
+                let pHand = [deck.pop(), deck.pop()];
+                let dHand = [deck.pop(), deck.pop()];
+
+                // Check Immediate Blackjack
+                let pVal = valorMao(pHand);
+                let res = null;
+                let turno = 'jogador';
+
+                if (pVal === 21) {
+                    turno = 'fim';
+                    if (valorMao(dHand) === 21) {
+                        res = 'empate';
+                        addLog("Ambos têm Blackjack! Empate.", 'comum');
+                        setJogador(p => ({ ...p, ouro: p.ouro + apostaInput }));
+                    } else {
+                        res = 'blackjack';
+                        addLog("BLACKJACK! Você venceu!", 'sucesso');
+                        triggerShake();
+                        setJogador(p => ({ ...p, ouro: p.ouro + Math.floor(apostaInput * 2.5) })); // 1.5x lucro
+                    }
+                }
+
+                setBlackjack({
+                    ativo: true,
+                    baralho: deck,
+                    maoJogador: pHand,
+                    maoDealer: dHand,
+                    aposta: apostaInput,
+                    turno: turno,
+                    resultado: res
+                });
+            };
+
+            const blackjackHit = () => {
+                let deck = [...blackjack.baralho];
+                let pHand = [...blackjack.maoJogador, deck.pop()];
+                let val = valorMao(pHand);
+
+                if (val > 21) {
+                    // Bust
+                    setBlackjack(prev => ({ ...prev, baralho: deck, maoJogador: pHand, turno: 'fim', resultado: 'derrota' }));
+                    addLog("Estourou! Você perdeu a aposta.", 'perigo');
+                } else {
+                    setBlackjack(prev => ({ ...prev, baralho: deck, maoJogador: pHand }));
+                }
+            };
+
+            const blackjackStand = () => {
+                // Dealer Turn
+                let deck = [...blackjack.baralho];
+                let dHand = [...blackjack.maoDealer];
+
+                while (valorMao(dHand) < 17) {
+                    dHand.push(deck.pop());
+                }
+
+                let pVal = valorMao(blackjack.maoJogador);
+                let dVal = valorMao(dHand);
+                let res = '';
+
+                if (dVal > 21 || pVal > dVal) {
+                    res = 'vitoria';
+                    addLog("Você venceu!", 'sucesso');
+                    setJogador(p => ({ ...p, ouro: p.ouro + (blackjack.aposta * 2) }));
+                } else if (dVal === pVal) {
+                    res = 'empate';
+                    addLog("Empate. Aposta devolvida.", 'comum');
+                    setJogador(p => ({ ...p, ouro: p.ouro + blackjack.aposta }));
+                } else {
+                    res = 'derrota';
+                    addLog("A casa venceu.", 'perigo');
+                }
+
+                setBlackjack(prev => ({
+                    ...prev,
+                    baralho: deck,
+                    maoDealer: dHand,
+                    turno: 'fim',
+                    resultado: res
+                }));
+            };
+
+            // Game Loop do Minigame
+            React.useEffect(() => {
+                let animationFrame;
+                if (minigame.active) {
+                    const loop = () => {
+                        setMinigame(prev => {
+                            let novaPos = prev.pos + (prev.speed * prev.direction);
+                            let novaDir = prev.direction;
+
+                            if (novaPos >= 100) {
+                                novaPos = 100;
+                                novaDir = -1;
+                            } else if (novaPos <= 0) {
+                                novaPos = 0;
+                                novaDir = 1;
+                            }
+
+                            return { ...prev, pos: novaPos, direction: novaDir };
+                        });
+                        animationFrame = requestAnimationFrame(loop);
+                    };
+                    animationFrame = requestAnimationFrame(loop);
+                }
+                return () => cancelAnimationFrame(animationFrame);
+            }, [minigame.active]);
 
             const respawn = () => {
                 if (jogador.hp > 0) return; // Guard clause: Não cobrar se já estiver vivo
@@ -1246,9 +2307,14 @@
                         mana: p.maxMana
                     }));
                     addLog("Você dormiu como uma pedra. Energias renovadas!", 'sucesso');
-                    setModal(null);
                 }
             };
+
+            const MERCENARIOS = [
+                { nome: "Novato Confiante", classe: "Guerreiro", dano: 5, custo: 200, desc: "Bate fraco, mas tenta." },
+                { nome: "Veterano de Guerra", classe: "Paladino", dano: 15, custo: 1000, desc: "Experiente e robusto." },
+                { nome: "Mestra das Chamas", classe: "Mago", dano: 40, custo: 5000, desc: "Destruição pura." }
+            ];
 
             const venderItem = (itemParams) => {
                 // Suporta item agrupado do inventário
@@ -1303,8 +2369,13 @@
 
             const aceitarMissao = (missao) => {
                 if (jogador.missaoAtiva) return addLog("Já possui uma missão ativa!");
-                setJogador(p => ({ ...p, missaoAtiva: missao }));
-                setMissoesDisponiveis(p => p.filter(m => m.id !== missao.id));
+                setJogador(p => ({ ...p, missaoAtiva: { ...missao, atual: 0 } })); // Garante contador zerado
+
+                // Só remove do quadro se for missão da guilda (tem ID)
+                if (missao.id) {
+                    setMissoesDisponiveis(p => p.filter(m => m.id !== missao.id));
+                }
+
                 setModal(null);
                 addLog(`Aceitou a missão: ${missao.titulo}`);
             };
@@ -1330,7 +2401,7 @@
                     id: idParaSalvar,
                     nome: nomeSave, // Nota: Se sobrescrever, mantemos o nome original ou atualizamos? Simplificação: Se saveComo, usa novo nome. Se overwrite, usa nome antigo? Não, overwrite update timestamp mas nome mantem ou não? 
                     // Melhor: overwrite mantem o mesmo ID. O nome pode ser atualizado se quisermos, mas como nao pedimos input, mantem o que estava?
-                    // Na logica abaixo, se overwrite, a gente não pediu nome. Então precisamos pegar o nome do save atual se ele existir, ou usar o gerado.
+                    // Como não temos o nome antigo facil aqui sem buscar, vamos assumir que o usuario nao quer mudar nome no overwrite.
                     // Ajuste: Se overwrite, não pede nome, então usa o nome que já estava no save OU gera um default.
                     // Vamos simplificar: Overwrite atualiza os DADOS e DATA, mantendo ID. Nome vamos manter o do save original se possivel, ou atualizar para "Lv X Class".
                     // Como não temos o nome antigo facil aqui sem buscar, vamos assumir que o usuario nao quer mudar nome no overwrite.
@@ -1773,6 +2844,21 @@
 
             // --- LÓGICA DE TEMPO E EVENTOS ---
             const avancarTempo = (qtd = 1) => {
+                // Chance de Invasão (5% ao avançar tempo)
+                // Só acontece se não houver invasão ativa, nem dungeon, nem campeonato
+                if (!invasao.ativa && !dungeonAtiva && !campeonatoAtivo && Math.random() < 0.05) {
+                    setInvasao({ ativa: true, inimigosRestantes: 5, nivel: jogador.nivel });
+                    // Toca Alerta
+                    addLog("🚨 UMA TROMBETA SOA! A VILA ESTÁ SOB ATAQUE! 🚨", 'perigo');
+                    alert("ALERTA: MONSTROS ESTÃO INVADINDO A CIDADE!\nProteja a vila antes que seja tarde!");
+                    // Força retorno para a cidade se estiver explorando perto (opcional, ou bloqueia volta)
+                    // Vamos assumir que a invasão é global, então onde estiver ele recebe o alerta (se for Vila/Cidade)
+                    // Se estiver em Dungeon, talvez não saiba? Melhor simplificar: Ataque na Vila Verdejante.
+                    if (jogador.local === 'Vila Verdejante') {
+                        triggerShake();
+                    }
+                }
+
                 setProgressoDia(prev => {
                     const novo = prev + qtd;
                     if (novo >= 10) { // A cada 10 ações, muda o turno
@@ -1940,7 +3026,7 @@
             // Vamos remover a opacidade e o blur pra garantir visibilidade total
 
             return (
-                <div className="h-[100dvh] w-full flex flex-col p-2 md:p-4 gap-2 md:gap-4 bg-transparent text-zinc-100 relative overflow-hidden transition-all duration-1000">
+                <div className={`h-[100dvh] w-full flex flex-col p-2 md:p-4 gap-2 md:gap-4 bg-transparent text-zinc-100 relative overflow-hidden transition-all duration-1000 ${screenShake ? 'animate-shake' : ''}`}>
 
                     {/* MODAL LEVEL UP */}
                     {modal === 'levelup' && (
@@ -1987,7 +3073,23 @@
                     )}
 
 
-                    {/* Camada de Fundo Real (Fixed para garantir que cubra tura) */}
+                    {/* LAYERS DE EFEITOS VISUAIS (Z-INDEX BAIXO) */}
+
+                    {/* 1. Overlay de Dia/Noite (Cor Ambiente) */}
+                    <div
+                        className="overlay-time"
+                        style={{
+                            backgroundColor:
+                                cicloDia === 'Noite' ? 'rgba(10, 10, 30, 0.4)' :
+                                    cicloDia === 'Tarde' ? 'rgba(50, 20, 0, 0.2)' :
+                                        'rgba(255, 255, 200, 0.05)'
+                        }}
+                    ></div>
+
+                    {/* 2. Sistema de Partículas */}
+                    <ParticleSystem tipo={localAtual?.tipo === 'Floresta' ? 'floresta' : localAtual?.tipo === 'Montanha' ? 'gelo' : localAtual?.tipo === 'Vulcão' ? 'vulcao' : 'padrão'} />
+
+                    {/* 3. Camada de Fundo Real (Fixed para garantir que cubra tudo) */}
                     <div className="fixed inset-0 z-[-10] bg-black">
                         <img
                             src={bgImage}
@@ -2001,8 +3103,8 @@
                     <div className="hidden">{jogador.local} - {localAtual?.tipo} - {bgImage}</div>
 
                     <div className="flex flex-col md:flex-row gap-2 md:gap-4 h-full overflow-hidden relative z-10">
-                        {/* Sidebar Responsiva */}
-                        <div className="w-full md:w-64 h-auto md:h-full flex-shrink-0 order-2 md:order-1 max-h-[35vh] md:max-h-full overflow-y-auto glass-card rounded-t-2xl md:rounded-2xl p-3 md:p-4 flex flex-col gap-2 md:gap-4 no-scrollbar">
+                        {/* Sidebar Responsiva (Mobile: Bottom, Desktop: Left) */}
+                        <div className="w-full md:w-64 h-auto md:h-full flex-shrink-0 order-3 md:order-1 max-h-[35vh] md:max-h-full overflow-y-auto glass-card rounded-t-2xl md:rounded-2xl p-3 md:p-4 flex flex-col gap-2 md:gap-4 no-scrollbar">
                             <div className="flex md:block items-center justify-between gap-4">
                                 <div className="flex items-center gap-3 md:block md:text-center">
                                     <div className="text-3xl md:text-4xl">{CLASSES[jogador.classe].icon}</div>
@@ -2038,6 +3140,19 @@
                                 </div>
                             </div>
 
+                            {/* ALIADO (Novo) */}
+                            {jogador.aliado && (
+                                <div className="bg-blue-900/30 border border-blue-500/30 rounded p-2 text-xs flex justify-between items-center">
+                                    <div>
+                                        <div className="font-bold text-blue-200">{jogador.aliado.nome}</div>
+                                        <div className="text-[10px] text-zinc-400">{jogador.aliado.tipo} • {jogador.aliado.dano} Dano</div>
+                                    </div>
+                                    <button onClick={dispensarAliado} className="text-red-400 hover:text-red-300 text-[10px] font-bold border border-red-500/30 px-2 py-1 rounded">
+                                        DISPENSAR
+                                    </button>
+                                </div>
+                            )}
+
                             {/* BOTÕES DE AÇÃO RESTAURADOS */}
                             <div className="flex gap-2 mt-auto">
                                 <button onClick={() => setModal('inventario')} className="flex-1 py-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-600 rounded-lg font-bold flex items-center justify-center gap-2 hover:border-amber-500 transition-all text-xs md:text-sm">
@@ -2053,74 +3168,79 @@
                             </div>
                         </div>
 
-                        {/* Main Area */}
-                        <div className="flex-1 flex flex-col gap-2 md:gap-4 relative order-1 md:order-2 overflow-hidden min-h-0">
+                        {/* Middle Column: Ações (Nova Coluna Solicitada) */}
+                        <div className="w-full md:w-48 h-auto md:h-full flex-shrink-0 order-2 md:order-2 glass-card md:rounded-2xl p-3 md:p-4 flex flex-row md:flex-col gap-2 overflow-x-auto md:overflow-y-auto no-scrollbar items-center md:items-stretch">
+                            <h3 className="hidden md:block text-zinc-500 font-bold uppercase text-xs text-center mb-2 tracking-widest border-b border-white/5 pb-2">Ações</h3>
+                            {(localAtual?.tipo === 'Cidade' || localAtual?.tipo === 'Vila') && (
+                                <>
+                                    {/* ALERTA DE INVASÃO */}
+                                    {invasao.ativa && (
+                                        <div className="md:col-span-1 w-full mb-2">
+                                            <button onClick={defenderVila} className="w-full py-4 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl animate-pulse shadow-[0_0_20px_rgba(220,38,38,0.6)] border-2 border-red-400 flex flex-col items-center justify-center gap-1">
+                                                <span className="text-2xl">🛡️ DEFENDER VILA</span>
+                                                <span className="text-xs">Monstros atacando!</span>
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    <BtnCidade icone="🛒" label="Loja" onClick={() => setModal('loja')} disabled={monstros.length > 0 || invasao.ativa} />
+                                    <BtnCidade icone="📜" label="Guilda" onClick={abrirGuilda} disabled={monstros.length > 0 || invasao.ativa} />
+                                    <BtnCidade icone="🎓" label="Habilidades" onClick={() => setModal('academia')} disabled={monstros.length > 0 || invasao.ativa} />
+                                    <BtnCidade icone="🍺" label="Taverna" onClick={abrirTaverna} disabled={monstros.length > 0 || invasao.ativa} />
+                                    <BtnCidade icone="⚗️" label="Alquimia" onClick={() => setModal('alquimia')} disabled={monstros.length > 0 || invasao.ativa} />
+                                    <BtnCidade icone="🏠" label="Imóveis" onClick={() => setModal('imoveis')} disabled={monstros.length > 0 || invasao.ativa} />
+
+                                    {/* BOTÃO DO CAMPEONATO */}
+                                    {campeonatoDisponivel ? (
+                                        <button disabled={monstros.length > 0 || invasao.ativa} onClick={() => setModal('campeonato')} className={`flex items-center gap-2 bg-gradient-to-r from-yellow-700 to-yellow-500 hover:from-yellow-600 hover:to-yellow-400 px-3 py-3 md:py-4 rounded-xl border-2 border-yellow-300 shadow-[0_0_15px_rgba(234,179,8,0.5)] animate-pulse transition-all text-sm font-bold text-black flex-shrink-0 md:w-full justify-center ${monstros.length > 0 || invasao.ativa ? 'opacity-50 cursor-not-allowed grayscale' : ''}`}>
+                                            <span className="text-xl">🏆</span> <span className="hidden md:inline">ARENA</span> <span className="md:hidden">CMP</span>
+                                        </button>
+                                    ) : (
+                                        <button disabled className="flex items-center gap-2 bg-zinc-900 px-3 py-3 md:py-4 rounded-xl border border-zinc-800 text-sm font-bold text-zinc-600 opacity-50 cursor-not-allowed flex-shrink-0 md:w-full justify-center" title={`Próximo em: ${Math.floor(tempoAteCampeonato / 60)}m ${tempoAteCampeonato % 60}s`}>
+                                            <span className="text-xl">⏳</span> <span className="hidden md:inline">{Math.floor(tempoAteCampeonato / 60)}min</span>
+                                        </button>
+                                    )}
+                                </>
+                            )}
+
+                            {/* Botão de Conversar (Aparece se houver NPCs no local, INDEPENDENTE de ser cidade) */}
+                            {NPCS[jogador.local] && (
+                                <BtnCidade icone="🗣️" label="Conversar" onClick={() => setModal('npcs')} disabled={monstros.length > 0 || invasao.ativa} />
+                            )}
+                            <BtnCidade icone="🗺️" label="Viajar" onClick={() => setModal('mapa')} disabled={monstros.length > 0 || invasao.ativa} />
+
+                            {/* Botão de Masmorra (Se houver uma no local e não estiver nela) */}
+                            {MASMORRAS.find(m => m.local === jogador.local) && !dungeonAtiva && (
+                                <button
+                                    onClick={() => iniciarMasmorra(MASMORRAS.find(m => m.local === jogador.local))}
+                                    disabled={monstros.length > 0 || invasao.ativa}
+                                    className={`flex items-center gap-2 bg-purple-900 hover:bg-purple-800 px-3 py-3 md:py-4 rounded-xl border border-purple-600 text-sm font-bold text-purple-200 shadow-[0_0_15px_rgba(147,51,234,0.3)] transition-all flex-shrink-0 md:w-full justify-center ${monstros.length > 0 ? 'opacity-50 cursor-not-allowed grayscale' : 'animate-pulse'}`}
+                                    title="Explorar Masmorra Perigosa"
+                                >
+                                    <span className="text-xl">🗝️</span> <span className="hidden md:inline">MASMORRA</span>
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Main Area: Agora sem botões no topo */}
+                        <div className="flex-1 flex flex-col gap-2 md:gap-4 relative order-1 md:order-3 overflow-hidden min-h-0 pt-16 md:pt-0">
                             {/* Header Loc */}
-                            <div className="glass-card p-4 rounded-xl flex flex-col gap-4 items-center">
+                            <div className="glass-card p-4 rounded-xl flex flex-col gap-4 items-center relative z-10 shadow-xl border border-white/10 mt-4 md:mt-0">
                                 <div className="min-w-fit text-center">
-                                    <h1 className="text-2xl font-fantasy text-amber-100">{jogador.local}</h1>
-                                    <div className="flex items-center justify-center gap-2 text-xs text-zinc-400">
+                                    <h1 className="text-2xl font-fantasy text-amber-100 drop-shadow-md">{jogador.local}</h1>
+                                    <div className="flex items-center justify-center gap-2 text-xs text-zinc-400 bg-black/40 px-3 py-1 rounded-full mt-1 border border-white/5">
                                         <span>{localAtual?.descricao}</span>
+                                        <span className="text-zinc-600">|</span>
+                                        {/* Reputação Display */}
+                                        <span className="text-yellow-400 font-bold" title="Sua fama nesta região">⭐ {jogador.reputacao} Rep</span>
                                         <span className="text-zinc-600">|</span>
                                         <span className={`font-bold ${cicloDia === 'Noite' ? 'text-purple-400' : cicloDia === 'Tarde' ? 'text-orange-400' : 'text-yellow-200'}`}>
                                             {cicloDia === 'Manhã' ? '☀️' : cicloDia === 'Tarde' ? '🌅' : '🌙'} {cicloDia}
                                         </span>
                                     </div>
                                 </div>
-                                <div className="flex gap-2 overflow-x-auto w-full pb-2 md:pb-0 scroll-hide justify-center">
-                                    {(localAtual?.tipo === 'Cidade' || localAtual?.tipo === 'Vila') && (
-                                        <>
-                                            <BtnCidade icone="🛒" label="Loja" onClick={() => setModal('loja')} disabled={monstros.length > 0} />
-                                            <BtnCidade icone="📜" label="Guilda" onClick={abrirGuilda} disabled={monstros.length > 0} />
-                                            <BtnCidade icone="🎓" label="Habilidades" onClick={() => setModal('academia')} disabled={monstros.length > 0} />
-                                            <BtnCidade icone="🍺" label="Taverna" onClick={abrirTaverna} disabled={monstros.length > 0} />
-
-                                            {/* BOTÃO DO CAMPEONATO */}
-                                            {campeonatoDisponivel ? (
-                                                <button disabled={monstros.length > 0} onClick={() => setModal('campeonato')} className={`flex items-center gap-2 bg-gradient-to-r from-yellow-700 to-yellow-500 hover:from-yellow-600 hover:to-yellow-400 px-3 py-2 rounded-lg border-2 border-yellow-300 shadow-[0_0_15px_rgba(234,179,8,0.5)] animate-pulse transition-all text-sm font-bold text-black flex-1 md:flex-none justify-center ${monstros.length > 0 ? 'opacity-50 cursor-not-allowed grayscale' : ''}`}>
-                                                    <span className="text-lg">🏆</span> <span className="inline">CAMP.</span>
-                                                </button>
-                                            ) : (
-                                                <button disabled className="flex items-center gap-2 bg-zinc-900 px-3 py-2 rounded-lg border border-zinc-800 text-sm font-bold text-zinc-600 opacity-50 cursor-not-allowed flex-1 md:flex-none justify-center" title={`Próximo em: ${Math.floor(tempoAteCampeonato / 60)}m ${tempoAteCampeonato % 60}s`}>
-                                                    <span className="text-lg">⏳</span> <span className="inline">{Math.floor(tempoAteCampeonato / 60)}:{String(tempoAteCampeonato % 60).padStart(2, '0')}</span>
-                                                </button>
-                                            )}
-                                        </>
-                                    )}
-                                    <BtnCidade icone="🗺️" label="Viajar" onClick={() => setModal('mapa')} disabled={monstros.length > 0} />
-
-                                    {/* Botão de Teste (Remover depois) */}
-                                    <button
-                                        onClick={() => {
-                                            setJogador(p => ({
-                                                ...p,
-                                                ouro: 5000,
-                                                nivel: 10,
-                                                hp: p.maxHp + 50,
-                                                maxHp: p.maxHp + 50,
-                                                local: "Vila Verdejante"
-                                            }));
-                                            alert("MODO TESTE ATIVADO!\n- Nível 10\n- 5000 Ouro\n- Teleportado para Vila");
-                                        }}
-                                        className="flex items-center gap-2 bg-green-900/50 hover:bg-green-800 px-3 py-2 rounded-lg border border-green-600 text-sm font-bold text-green-200"
-                                        title="Cheat para Testes"
-                                    >
-                                        🛠️ TESTAR
-                                    </button>
-
-                                    {/* Botão de Masmorra (Se houver uma no local e não estiver nela) */}
-                                    {MASMORRAS.find(m => m.local === jogador.local) && !dungeonAtiva && (
-                                        <button
-                                            onClick={() => iniciarMasmorra(MASMORRAS.find(m => m.local === jogador.local))}
-                                            disabled={monstros.length > 0}
-                                            className={`flex items-center gap-2 bg-purple-900 hover:bg-purple-800 px-3 py-2 rounded-lg border border-purple-600 text-sm font-bold text-purple-200 shadow-[0_0_15px_rgba(147,51,234,0.3)] transition-all ${monstros.length > 0 ? 'opacity-50 cursor-not-allowed grayscale' : 'animate-pulse'}`}
-                                            title="Explorar Masmorra Perigosa"
-                                        >
-                                            <span className="text-lg">🗝️</span> <span className="hidden md:inline">MASMORRA</span>
-                                        </button>
-                                    )}
-                                </div>
                             </div>
+
 
                             {/* Game Area */}
                             <div className="flex-1 glass-card rounded-xl overflow-y-auto relative bg-black/40 flex flex-col scroll-hide min-h-0 border border-white/5 backdrop-blur-[2px]">
@@ -2148,7 +3268,9 @@
 
                                                     {/* Info Card (Agora embaixo para não tapar) */}
                                                     <div className="bg-zinc-900/90 border border-red-900/50 p-2 rounded-lg min-w-[100px] shadow-xl backdrop-blur-sm z-20 text-center">
-                                                        <div className="font-bold text-[10px] text-zinc-100 leading-tight mb-1">{monstro.nome}</div>
+                                                        <div className="font-bold text-[10px] text-zinc-100 leading-tight mb-1">
+                                                            {monstro.nome} <span className="text-xs">{ELEMENTOS[monstro.elemento]?.icon}</span>
+                                                        </div>
                                                         <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden border border-zinc-700 w-full">
                                                             <div className="h-full bg-red-600 transition-all duration-300" style={{ width: `${(monstro.hp / monstro.maxHp) * 100}%` }}></div>
                                                         </div>
@@ -2274,7 +3396,7 @@
                                                             <button
                                                                 key={magia.id}
                                                                 onClick={() => usarHabilidade(magia)}
-                                                                className={`col-span-1 ${CLASSES[jogador.classe]?.recurso.cor || 'bg-cyan-700'} hover:brightness-110 text-white py-3 md:py-1.5 rounded-lg md:rounded font-bold text-xs md:text-[10px] flex flex-col items-center justify-center border-b-2 border-black/20 transition-all active:scale-95 hover:shadow-lg`}
+                                                                className={`col-span-1 ${CLASSES[jogador.classe]?.recurso.cor || 'bg-cyan-700'} hover:brightness-110 text-white py-3 md:py-1.5 rounded-lg md:rounded font-bold text-sm md:text-[10px] flex flex-col items-center justify-center border-b-2 border-black/20 transition-all active:scale-95 hover:shadow-lg`}
                                                                 title={`${magia.desc} (Poder: ${magia.poder})`}
                                                             >
                                                                 <span>{magia.tipo === 'Cura' ? '💖' : '⚡'} {magia.nome}</span>
@@ -2339,6 +3461,15 @@
                                                             <span className="text-xl group-hover:scale-110 transition-transform">⛏️</span>
                                                             <span className="font-bold text-zinc-300 group-hover:text-stone-300">Mina Abandonada</span>
                                                         </button>
+                                                    )}
+
+                                                    {/* ALERTA VISUAL DE INVASÃO */}
+                                                    {invasao.ativa && (
+                                                        <div className="mt-4 p-4 bg-red-900/80 border-2 border-red-500 rounded-xl animate-pulse text-center">
+                                                            <div className="text-3xl">⚠️</div>
+                                                            <h4 className="text-red-200 font-bold uppercase">Cidade sob Ataque!</h4>
+                                                            <p className="text-red-100 text-xs mt-1">Defenda a vila para liberar os serviços.</p>
+                                                        </div>
                                                     )}
                                                 </div>
 
@@ -2475,6 +3606,20 @@
                                                                 </div>
                                                             </div>
                                                             <button onClick={() => comprarItem(item)} className="bg-purple-700 hover:bg-purple-600 px-4 py-2 rounded font-bold text-sm">Adotar {item.preco}💰</button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+
+                                                {/* Acessórios & Itens Especiais (Novo) */}
+                                                <h3 className="text-zinc-400 text-sm font-bold uppercase mb-2 border-b border-white/10 pb-1">Acessórios & Joias</h3>
+                                                <div className="grid gap-3 mb-6">
+                                                    {ITENS_LOJA.filter(i => i.tipo === 'Acessório').map(item => (
+                                                        <div key={item.id} className="flex justify-between items-center p-3 bg-pink-900/10 rounded-lg border border-pink-500/20 hover:border-pink-500/50">
+                                                            <div>
+                                                                <div className="font-bold text-pink-200">{item.nome}</div>
+                                                                <div className="text-xs text-zinc-400">{item.desc}</div>
+                                                            </div>
+                                                            <button onClick={() => comprarItem(item)} className="bg-pink-700 hover:bg-pink-600 px-4 py-2 rounded font-bold text-sm">Comprar {item.preco}💰</button>
                                                         </div>
                                                     ))}
                                                 </div>
@@ -2805,6 +3950,278 @@
                                                             <div className="text-xs text-zinc-400 mt-1">Recupera TODA Vida e {CLASSES[jogador.classe]?.recurso.nome || 'Recurso'}</div>
                                                         </button>
                                                     </div>
+
+                                                    <h3 className="text-zinc-400 text-sm font-bold uppercase mb-2 border-b border-white/10 pb-1 mt-6">Contratar Mercenários</h3>
+                                                    <div className="space-y-3">
+                                                        {MERCENARIOS.map((merc, idx) => (
+                                                            <div key={idx} className="flex justify-between items-center p-3 bg-zinc-800 rounded-lg border border-zinc-700">
+                                                                <div>
+                                                                    <div className="font-bold text-zinc-200">{merc.nome} <span className="text-xs text-zinc-500">({merc.classe})</span></div>
+                                                                    <div className="text-xs text-zinc-400">{merc.desc}</div>
+                                                                    <div className="text-xs text-red-400 font-bold">Dano: {merc.dano}</div>
+                                                                </div>
+                                                                <button onClick={() => contratarMercenario(merc)} className="bg-blue-900 hover:bg-blue-800 px-3 py-2 rounded text-xs font-bold border border-blue-700">
+                                                                    Contratar ({merc.custo}g)
+                                                                </button>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+
+                                                {/* BLACKJACK */}
+                                                <div className="bg-black/40 p-6 rounded-xl border border-dashed border-amber-900/50 text-center mt-6">
+                                                    <h3 className="text-xl font-fantasy text-zinc-300 mb-4">♠️ Blackjack ♦️</h3>
+
+                                                    {!blackjack.ativo ? (
+                                                        <div className="flex flex-col items-center gap-2">
+                                                            <label className="text-xs text-zinc-500 uppercase">Valor da Aposta</label>
+                                                            <input
+                                                                type="number"
+                                                                value={apostaInput}
+                                                                onChange={e => setApostaInput(parseInt(e.target.value) || 0)}
+                                                                className="bg-black border border-zinc-700 text-white p-2 rounded w-24 text-center font-bold"
+                                                                min="1"
+                                                            />
+                                                            <button onClick={blackjackIniciar} className="mt-2 bg-green-800 hover:bg-green-700 text-white font-bold py-2 px-8 rounded shadow border border-green-600">
+                                                                Jogar
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="animate-fade-in">
+                                                            <div className="flex justify-around mb-6">
+                                                                {/* Dealer Hand */}
+                                                                <div>
+                                                                    <div className="text-xs text-zinc-500 uppercase mb-2">Mão da Casa</div>
+                                                                    <div className="flex gap-2 justify-center">
+                                                                        {blackjack.maoDealer.map((c, i) => (
+                                                                            <div key={i} className={`w-10 h-14 bg-zinc-200 text-black rounded flex items-center justify-center font-bold border-2 border-zinc-400 ${blackjack.turno === 'jogador' && i === 1 ? 'bg-red-900 border-red-800 text-transparent' : ''}`}>
+                                                                                {blackjack.turno === 'jogador' && i === 1 ? '?' : `${c.valor}${c.naipe}`}
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                    <div className="text-sm font-bold mt-1 text-zinc-400">
+                                                                        {blackjack.turno === 'jogador' ? '?' : valorMao(blackjack.maoDealer)}
+                                                                    </div>
+                                                                </div>
+
+                                                                {/* Player Hand */}
+                                                                <div>
+                                                                    <div className="text-xs text-zinc-500 uppercase mb-2">Sua Mão</div>
+                                                                    <div className="flex gap-2 justify-center">
+                                                                        {blackjack.maoJogador.map((c, i) => (
+                                                                            <div key={i} className="w-10 h-14 bg-zinc-200 text-black rounded flex items-center justify-center font-bold border-2 border-zinc-400">
+                                                                                {c.valor}{c.naipe}
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                    <div className="text-sm font-bold mt-1 text-amber-500">
+                                                                        {valorMao(blackjack.maoJogador)}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+
+                                                            {blackjack.turno === 'jogador' ? (
+                                                                <div className="flex gap-4 justify-center">
+                                                                    <button onClick={blackjackHit} className="bg-blue-800 hover:bg-blue-700 px-6 py-2 rounded font-bold border border-blue-600">
+                                                                        Pedir Carta
+                                                                    </button>
+                                                                    <button onClick={blackjackStand} className="bg-red-800 hover:bg-red-700 px-6 py-2 rounded font-bold border border-red-600">
+                                                                        Parar
+                                                                    </button>
+                                                                </div>
+                                                            ) : (
+                                                                <div>
+                                                                    <div className={`text-2xl font-bold mb-4 ${blackjack.resultado === 'vitoria' ? 'text-green-500' : blackjack.resultado === 'derrota' ? 'text-red-500' : 'text-yellow-500'}`}>
+                                                                        {blackjack.resultado === 'vitoria' || blackjack.resultado === 'blackjack' ? 'VOCÊ VENCEU!' : blackjack.resultado === 'derrota' ? 'A CASA VENCEU' : 'EMPATE'}
+                                                                    </div>
+                                                                    <button onClick={() => setBlackjack(prev => ({ ...prev, ativo: false, maoJogador: [], maoDealer: [] }))} className="bg-zinc-700 hover:bg-zinc-600 px-8 py-2 rounded font-bold">
+                                                                        Jogar Novamente
+                                                                    </button>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {modal === 'npcs' && (
+                                            <div>
+                                                <h2 className="text-2xl font-fantasy text-amber-500 mb-6">Pessoas de {localAtual.nome}</h2>
+
+                                                {/* Se estiver em dialogo */}
+                                                {dialogoNpc ? (
+                                                    <div className="bg-black/40 p-6 rounded-xl border border-white/10 animate-fade-in">
+                                                        <div className="flex items-center gap-4 mb-4 border-b border-white/5 pb-4">
+                                                            <div className="w-16 h-16 bg-zinc-800 rounded-full flex items-center justify-center text-3xl border-2 border-amber-500">
+                                                                👤
+                                                            </div>
+                                                            <div>
+                                                                <h3 className="text-xl font-bold text-amber-100">{dialogoNpc.nome}</h3>
+                                                                <p className="text-sm text-amber-500/80 uppercase tracking-widest">{dialogoNpc.cargo}</p>
+                                                            </div>
+                                                        </div>
+
+                                                        <p className="text-lg text-zinc-300 italic mb-8">
+                                                            "{dialogoNpc.falas[Math.floor(Math.random() * dialogoNpc.falas.length)]}"
+                                                        </p>
+
+                                                        <div className="grid gap-2">
+                                                            {/* Missão de NPC */}
+                                                            {dialogoNpc.quest && !jogador.missaoAtiva && (
+                                                                <button
+                                                                    onClick={() => {
+                                                                        aceitarMissao(dialogoNpc.quest);
+                                                                        setDialogoNpc(null);
+                                                                    }}
+                                                                    className="bg-amber-900/50 hover:bg-amber-800 p-3 rounded text-amber-200 border border-amber-700 text-left flex justify-between items-center"
+                                                                >
+                                                                    <span>📜 {dialogoNpc.quest.titulo}</span>
+                                                                    <span className="text-xs bg-black/30 px-2 py-1 rounded">Recompensa: {dialogoNpc.quest.recompensa.ouro}g, {dialogoNpc.quest.recompensa.rep} Rep</span>
+                                                                </button>
+                                                            )}
+
+                                                            {dialogoNpc.quest && jogador.missaoAtiva && jogador.missaoAtiva.titulo === dialogoNpc.quest.titulo && jogador.missaoAtiva.atual >= jogador.missaoAtiva.req.qtd && (
+                                                                <button
+                                                                    onClick={() => {
+                                                                        // Completar Missão NPC
+                                                                        setJogador(p => ({
+                                                                            ...p,
+                                                                            ouro: p.ouro + dialogoNpc.quest.recompensa.ouro,
+                                                                            xp: p.xp + dialogoNpc.quest.recompensa.xp,
+                                                                            reputacao: (p.reputacao || 0) + dialogoNpc.quest.recompensa.rep,
+                                                                            missaoAtiva: null
+                                                                        }));
+                                                                        addLog(`Missão de NPC Completa! Ganhou ${dialogoNpc.quest.recompensa.rep} Reputação.`, 'sucesso');
+                                                                        setDialogoNpc(null);
+                                                                        alert("Obrigado pela ajuda, aventureiro!");
+                                                                    }}
+                                                                    className="bg-green-900/50 hover:bg-green-800 p-3 rounded text-green-200 border border-green-700 text-left font-bold animate-pulse"
+                                                                >
+                                                                    ✅ COMPLETAR MISSÃO
+                                                                </button>
+                                                            )}
+
+                                                            {dialogoNpc.servico === 'Cura' && (
+                                                                <button onClick={() => {
+                                                                    if (jogador.ouro < 50) return addLog("Sem ouro!");
+                                                                    setJogador(p => ({ ...p, ouro: p.ouro - 50, hp: p.maxHp }));
+                                                                    addLog("Curandeira tratou seus ferimentos.", "cura");
+                                                                    setDialogoNpc(null);
+                                                                }} className="bg-green-900/50 hover:bg-green-800 p-3 rounded text-green-200 border border-green-700 text-left">
+                                                                    🩹 Pedir Cura (50g)
+                                                                </button>
+                                                            )}
+                                                            <button onClick={() => setDialogoNpc(null)} className="bg-zinc-800 hover:bg-zinc-700 p-3 rounded text-zinc-400 text-left">
+                                                                👋 Até logo.
+                                                            </button>
+
+                                                            {/* CASAMENTO */}
+                                                            {dialogoNpc.casavel && !jogador.conjuge && jogador.inventario.some(i => i.id === 'anel_noivado') && (
+                                                                <button onClick={() => casar(dialogoNpc)} className="bg-pink-900/50 hover:bg-pink-800 p-3 rounded text-pink-200 border border-pink-700 text-left animate-pulse font-bold">
+                                                                    💍 Pedir em Casamento
+                                                                </button>
+                                                            )}
+
+                                                            {/* CONVIDAR CÔNJUGE */}
+                                                            {jogador.conjuge === dialogoNpc.nome && (
+                                                                <button onClick={() => convidarConjuge(dialogoNpc)} className="bg-pink-900/50 hover:bg-pink-800 p-3 rounded text-pink-200 border border-pink-700 text-left font-bold">
+                                                                    ❤️ Convidar para Aventura
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    // Lista de NPCs
+                                                    <div className="grid gap-3">
+                                                        {(NPCS[localAtual.nome] || []).map((npc, idx) => {
+                                                            const unlockRep = !npc.reqRep || jogador.reputacao >= npc.reqRep;
+                                                            return (
+                                                                <button
+                                                                    key={idx}
+                                                                    onClick={() => {
+                                                                        if (unlockRep) setDialogoNpc(npc);
+                                                                        else addLog(`Você precisa de ${npc.reqRep} Reputação para falar com ${npc.nome}.`, 'comum');
+                                                                    }}
+                                                                    className={`flex items-center gap-4 p-4 rounded-xl transition-all text-left group border ${unlockRep ? 'bg-white/5 hover:bg-white/10 border-white/5 hover:border-amber-500/30' : 'bg-black/20 border-zinc-800 opacity-50 cursor-not-allowed'}`}
+                                                                >
+                                                                    <div className="text-2xl opacity-70 group-hover:opacity-100 group-hover:scale-110 transition-transform">{unlockRep ? '💬' : '🔒'}</div>
+                                                                    <div>
+                                                                        <div className={`font-bold ${unlockRep ? 'text-zinc-200 group-hover:text-amber-200' : 'text-zinc-600'}`}>{npc.nome}</div>
+                                                                        <div className="text-xs text-zinc-500 uppercase">{npc.cargo}</div>
+                                                                        {!unlockRep && <div className="text-xs text-red-500 mt-1">Requer {npc.reqRep} Rep</div>}
+                                                                        {unlockRep && npc.quest && <div className="text-[10px] text-yellow-500 mt-1">📜 Tem Missão</div>}
+                                                                    </div>
+                                                                </button>
+                                                            );
+                                                        })}
+                                                        {(!NPCS[localAtual.nome] || NPCS[localAtual.nome].length === 0) && (
+                                                            <p className="text-zinc-500 italic">Não há ninguém para conversar aqui.</p>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {modal === 'imoveis' && (
+                                            <div>
+                                                <div className="flex justify-between items-center mb-6">
+                                                    <h2 className="text-2xl font-fantasy text-amber-500">Imobiliária Local</h2>
+                                                    <div className="text-right">
+                                                        <p className="text-xs text-zinc-400">Lucro Pendente</p>
+                                                        <div className="text-green-400 font-bold text-lg">+{calcularLucroPendente()} g</div>
+                                                        <button onClick={realizarColeta} className="text-[10px] bg-green-900 px-2 py-1 rounded text-white hover:bg-green-700">COLETAR</button>
+                                                    </div>
+                                                </div>
+
+                                                <div className="grid gap-4">
+                                                    {IMOVEIS.filter(i => i.local === jogador.local || jogador.propriedades?.includes(i.id)).map(imovel => {
+                                                        const possui = jogador.propriedades?.includes(imovel.id);
+                                                        const noLocal = imovel.local === jogador.local;
+
+                                                        // Se não possui e não ta no local, esconde (para não poluir com imoveis de outras cidades)
+                                                        if (!possui && !noLocal) return null;
+
+                                                        return (
+                                                            <div key={imovel.id} className={`relative p-4 rounded-xl border ${possui ? 'bg-amber-900/10 border-amber-500/50' : 'bg-zinc-900/50 border-zinc-700'} overflow-hidden group`}>
+                                                                <div className="flex gap-4 relative z-10">
+                                                                    <img src={imovel.img} alt={imovel.nome} className="w-24 h-24 object-cover rounded-lg bg-black/50" />
+                                                                    <div className="flex-1">
+                                                                        <div className="flex justify-between items-start">
+                                                                            <h3 className={`font-bold text-lg ${possui ? 'text-amber-200' : 'text-zinc-300'}`}>{imovel.nome}</h3>
+                                                                            {possui && <span className="bg-amber-500 text-black text-[10px] font-bold px-2 py-0.5 rounded-full">PROPRIETÁRIO</span>}
+                                                                        </div>
+                                                                        <p className="text-zinc-500 text-xs mb-1">{imovel.local} • {imovel.tipo}</p>
+                                                                        <p className="text-zinc-400 text-sm mb-3 text-sm">{imovel.desc}</p>
+
+                                                                        <div className="flex gap-2 mt-auto">
+                                                                            {possui ? (
+                                                                                <>
+                                                                                    {imovel.tipo === 'Casa' && noLocal && (
+                                                                                        <button onClick={dormirEmCasa} className="flex-1 bg-blue-700 hover:bg-blue-600 text-white font-bold py-1.5 rounded text-xs">
+                                                                                            💤 DESCANSAR (GRÁTIS)
+                                                                                        </button>
+                                                                                    )}
+                                                                                    {imovel.tipo === 'Comercio' && (
+                                                                                        <div className="flex-1 bg-zinc-800 text-zinc-400 py-1.5 rounded text-center text-xs border border-zinc-700">
+                                                                                            Gerando {Math.floor(imovel.renda / 20)}g/min
+                                                                                        </div>
+                                                                                    )}
+                                                                                </>
+                                                                            ) : (
+                                                                                <button onClick={() => comprarImovel(imovel)} className="flex-1 bg-green-700 hover:bg-green-600 text-white font-bold py-1.5 rounded text-sm shadow-lg shadow-green-900/20">
+                                                                                    COMPRAR POR {imovel.preco} 💰
+                                                                                </button>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                    {IMOVEIS.filter(i => i.local === jogador.local).length === 0 && (
+                                                        <p className="text-zinc-500 italic p-4 text-center">Nenhum imóvel à venda nesta região.</p>
+                                                    )}
                                                 </div>
                                             </div>
                                         )}
@@ -2876,7 +4293,7 @@
                                                                 <div className={`p-3 rounded-lg border flex flex-col items-center justify-center h-24 text-center ${jogador.equipamento[slot] ? 'bg-amber-900/20 border-amber-500/50' : 'bg-black/20 border-white/5'}`}>
                                                                     {jogador.equipamento[slot] ? (
                                                                         <>
-                                                                            <div className="font-bold text-amber-100 text-xs sm:text-sm">{jogador.equipamento[slot].nome}</div>
+                                                                            <div className={`font-bold text-xs sm:text-sm ${jogador.equipamento[slot].raridade === 'Mágico' ? 'text-blue-400' : jogador.equipamento[slot].raridade === 'Raro' ? 'text-yellow-400' : 'text-amber-100'}`}>{jogador.equipamento[slot].nome}</div>
                                                                             <button onClick={() => desequipar(slot)} className="absolute -top-2 -right-2 bg-red-600 text-white w-6 h-6 rounded-full text-xs shadow-lg hover:scale-110 opacity-0 group-hover:opacity-100 transition-all">✕</button>
                                                                         </>
                                                                     ) : (
@@ -2917,7 +4334,7 @@
                                                                     return (
                                                                         <div key={key} className="flex justify-between items-center p-2 bg-white/5 rounded border border-white/5 hover:border-amber-500/30 group">
                                                                             <div className="flex-1">
-                                                                                <div className="font-bold text-zinc-200 flex items-center gap-2">
+                                                                                <div className={`font-bold flex items-center gap-2 ${item.raridade === 'Mágico' ? 'text-blue-400' : item.raridade === 'Raro' ? 'text-yellow-400' : 'text-zinc-200'}`}>
                                                                                     {item.nome}
                                                                                     {item.qtd > 1 && <span className="text-xs bg-zinc-700 text-zinc-300 px-1.5 rounded-full">x{item.qtd}</span>}
                                                                                 </div>
@@ -3029,6 +4446,15 @@
                         )
                     }
 
+                    {/* MODAL ALQUIMIA */}
+                    {modal === 'alquimia' && (
+                        <TelaAlquimia
+                            jogador={jogador}
+                            setJogador={setJogador}
+                            onVoltar={() => setModal(null)}
+                        />
+                    )}
+
                     {/* Modal Isolado para o Menu Principal */}
                     {
                         view === 'menu' && modal === 'carregar_menu' && (
@@ -3056,6 +4482,33 @@
                         onChange={importarArquivo}
                         accept=".rpgsave,.json,application/json"
                     />
+
+                    {/* MODAL MINIGAME */}
+                    {minigame.active && (
+                        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm cursor-pointer" onClick={resolverMinigame}>
+                            <div className="bg-zinc-900 border-2 border-amber-500 rounded-xl p-8 w-full max-w-lg shadow-[0_0_50px_rgba(245,158,11,0.5)] relative" onClick={(e) => e.stopPropagation()}>
+                                <h2 className="text-3xl font-fantasy text-center text-amber-500 mb-6 animate-pulse">ACERTE A ÁREA VERDE!</h2>
+
+                                <div className="relative h-16 bg-zinc-800 rounded-full border border-zinc-600 overflow-hidden cursor-crosshair" onClick={resolverMinigame}>
+                                    {/* Área Alvo */}
+                                    <div
+                                        className="absolute top-0 bottom-0 bg-green-500/80 shadow-[0_0_20px_rgba(34,197,94,0.8)] border-x-2 border-white/50"
+                                        style={{
+                                            left: `${minigame.target[0]}%`,
+                                            width: `${minigame.target[1] - minigame.target[0]}%`
+                                        }}
+                                    ></div>
+
+                                    {/* Cursor */}
+                                    <div
+                                        className="absolute top-0 bottom-0 w-2 bg-white shadow-[0_0_15px_white] z-10"
+                                        style={{ left: `${minigame.pos}%`, transition: 'left 0s linear' }}
+                                    ></div>
+                                </div>
+                                <p className="text-center text-zinc-400 mt-4 text-sm animate-bounce">Clique para minerar!</p>
+                            </div>
+                        </div>
+                    )}
                 </div >
             );
         };
@@ -3063,6 +4516,7 @@
         const CriacaoScreen = ({ onCriar, onVoltar }) => {
             const [nome, setNome] = React.useState("");
             const [raca, setRaca] = React.useState("Humano");
+            const [sexo, setSexo] = React.useState("Masculino");
             const [classe, setClasse] = React.useState("Guerreiro");
 
             const racaAtual = RACAS[raca];
@@ -3091,6 +4545,22 @@
                                     onChange={e => setNome(e.target.value)}
                                     placeholder="Ex: Aragorn"
                                 />
+                            </div>
+
+                            {/* Sexo Selector */}
+                            <div>
+                                <label className="block text-xs uppercase font-bold text-zinc-500 mb-1">Gênero</label>
+                                <div className="flex gap-2">
+                                    {['Masculino', 'Feminino', 'Outro'].map(s => (
+                                        <button
+                                            key={s}
+                                            onClick={() => setSexo(s)}
+                                            className={`flex-1 p-2 rounded-lg border transition-all text-sm font-bold ${sexo === s ? 'bg-amber-900/40 border-amber-500 text-amber-100' : 'bg-zinc-900/40 border-white/5 text-zinc-500 hover:bg-zinc-800'}`}
+                                        >
+                                            {s}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
 
                             {/* Race Selector Grid */}
@@ -3139,7 +4609,7 @@
                             <div className="flex-1 flex flex-col items-center justify-center mb-6">
                                 <div className="text-6xl mb-4 animate-float">{CLASSES[classe].icon}</div>
                                 <div className="text-xl font-bold text-white max-w-full truncate px-2">{nome || "Herói"}</div>
-                                <div className="text-sm text-amber-500">{raca} {classe}</div>
+                                <div className="text-sm text-amber-500">{raca} {classe} [{sexo}]</div>
                             </div>
 
                             <div className="space-y-4 mb-6">
@@ -3158,7 +4628,7 @@
                             <div className="mt-auto flex gap-3">
                                 <button onClick={onVoltar} className="px-4 py-3 bg-zinc-800 hover:bg-zinc-700 rounded-lg font-bold text-zinc-400 text-sm transition-colors border border-zinc-700 hover:text-zinc-200">Voltar</button>
                                 <button
-                                    onClick={() => onCriar({ nome, raca, classe })}
+                                    onClick={() => onCriar({ nome, raca, classe, sexo })}
                                     disabled={!nome}
                                     className="flex-1 bg-gradient-to-r from-amber-700 to-amber-600 hover:from-amber-600 hover:to-amber-500 text-white font-bold p-3 rounded-lg text-sm transition-all shadow-[0_0_20px_rgba(245,158,11,0.2)] disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02]"
                                 >
